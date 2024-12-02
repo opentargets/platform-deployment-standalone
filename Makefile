@@ -124,7 +124,7 @@ clean_env: ## Clean the .env file
 
 platform_up: deploy ## Bring up an Open Targets Platform deployment
 	@echo "[OTOPS] Bringing up an Open Targets Platform deployment"
-	docker-compose -f docker-compose.yml up -d --wait
+	docker-compose -f docker-compose.yml up -d
 
 platform_down: ## Tear down an Open Targets Platform deployment
 	@echo "[OTOPS] Tearing down an Open Targets Platform deployment"
