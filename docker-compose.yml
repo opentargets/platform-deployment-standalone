@@ -68,12 +68,6 @@ services:
       start_period: 30s
     networks:
       - ot-platform
-    command:
-      - /bin/sh
-      - -c
-      - |
-        /bin/chown opensearch:opensearch -R /usr/share/opensearch/data
-        ./opensearch-docker-entrypoint.sh
 
   nginx:
     image: ${OTOPS_PROFILE_NGINX_DOCKER_IMAGE_NAME}:${OTOPS_PROFILE_NGINX_DOCKER_IMAGE_TAG}
