@@ -118,6 +118,10 @@ clean_release: clean_clickhouse_release clean_elastic_search_release clean_webap
 	@echo "[OTOPS] Cleaning all data images and webapp bundle"
 	@rm -rf ${OTOPS_PATH_RELEASE}
 
+clean_env: ## Clean the .env file
+	@echo "[OTOPS] Cleaning the .env file"
+	@rm -f .env
+
 platform_up: deploy ## Bring up an Open Targets Platform deployment
 	@echo "[OTOPS] Bringing up an Open Targets Platform deployment"
 	docker-compose -f docker-compose.yml up -d --wait
@@ -126,8 +130,8 @@ platform_down: ## Tear down an Open Targets Platform deployment
 	@echo "[OTOPS] Tearing down an Open Targets Platform deployment"
 	docker-compose -f docker-compose.yml down
 
-clean: clean_profile clean_deployments clean_release ## Clean the active configuration profile, all deployments stores and data images
+clean: clean_profile clean_deployments clean_release clean_env ## Clean the active configuration profile, all deployments stores and data images
 	@echo "[OTOPS] Cleaning the active configuration profile, all deployments stores and data images"
 
-.PHONY: help clean_clickhouse_release clean_elastic_search_release clean_webapp_release download_release download_clickhouse download_elastic_search download_webapp set_profile clean clean_profile summary_environment deploy_clickhouse deploy_elastic_search deploy deploy_webapp deploy clean_clickhouse clean_elastic_search clean_webapp clean_deployments platform_up platform_down
+.PHONY: help clean_clickhouse_release clean_elastic_search_release clean_webapp_release download_release download_clickhouse download_elastic_search download_webapp set_profile clean clean_profile summary_environment deploy_clickhouse deploy_elastic_search deploy deploy_webapp deploy clean_clickhouse clean_elastic_search clean_webapp clean_deployments clean_env platform_up platform_down
 
