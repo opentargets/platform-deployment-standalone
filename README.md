@@ -4,10 +4,10 @@ This application enables a simple, customisable, local deployment of the [Open T
 
 The application fetches all of the necessary resources and components (below) and orchestrates their deployment with docker compose, so all you have to do is the configuration.
 
-#### Resources: 
+#### Resources:
 1. Open Targets data
    1. OpenSearch data - archived images are publicly available
-   2. ClickHouse data - archived images are publicly available 
+   2. ClickHouse data - archived images are publicly available
 2. Open Targets software
    1. Web App - bundle is available from [repo](https://github.com/opentargets/ot-ui-apps)
    2. Platform API - publicly available as a docker image on [quay.io](https://quay.io/repository/opentargets/platform-api)
@@ -35,15 +35,15 @@ make platform_up
 Visit the platform in your browser http://localhost:8080/
 
 ## Requirements
-- [docker-compose](https://docs.docker.com/get-docker/)
+- [docker](https://docs.docker.com/get-docker/)
 - [gsutil](https://cloud.google.com/storage/docs/gsutil_install) (recommended)
 - at least 100GB local storage (as of release 23.12)
-  
+
 ## Deploying the platform locally
 #### Configuration
 This [config file](profiles/config.dev) can be used to config the components of the platform deployment. For example, configure the versions of the software or the path to the data images. This allows you to deploy the platform with any combination of software and data, including your own custom software and data.
 
-To store multiple different configurations, other config files (profiles) can be created using the "profiles/config.<profile_name>" format. Top select the profile for the deployment, use the command `make set_profile profile=<profile_name>`. 
+To store multiple different configurations, other config files (profiles) can be created using the "profiles/config.<profile_name>" format. Top select the profile for the deployment, use the command `make set_profile profile=<profile_name>`.
 
 #### Usage
 The interface is a CLI using GNU `make`. To see the full list of commands execute `make help`
