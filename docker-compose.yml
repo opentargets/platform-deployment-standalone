@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     image: ${OTOPS_PROFILE_API_DOCKER_IMAGE_NAME}:${OTOPS_PROFILE_API_DOCKER_IMAGE_TAG}
@@ -38,12 +36,22 @@ services:
       - ot-platform
 
   elasticsearch:
-    image: ${OTOPS_PROFILE_ELASTIC_SEARCH_DOCKER_IMAGE_NAME}:${OTOPS_PROFILE_ELASTIC_SEARCH_DOCKER_IMAGE_TAG}
+    image: local/opensearch
+    build:
+      context: opensearch
+      dockerfile: Dockerfile
+      args:
+        OTOPS_PROFILE_ELASTIC_SEARCH_UID: ${OTOPS_PROFILE_ELASTIC_SEARCH_UID}
+        OTOPS_PROFILE_ELASTIC_SEARCH_GID: ${OTOPS_PROFILE_ELASTIC_SEARCH_GID}
+        OTOPS_PROFILE_ELASTIC_SEARCH_DOCKER_IMAGE_NAME: ${OTOPS_PROFILE_ELASTIC_SEARCH_DOCKER_IMAGE_NAME}
+        OTOPS_PROFILE_ELASTIC_SEARCH_DOCKER_IMAGE_TAG: ${OTOPS_PROFILE_ELASTIC_SEARCH_DOCKER_IMAGE_TAG}
     container_name: ot-es
     ports:
       - "9200:9200"
       - "9300:9600"
     environment:
+      - "UID=${OTOPS_PROFILE_ELASTIC_SEARCH_UID}"
+      - "GID=${OTOPS_PROFILE_ELASTIC_SEARCH_GID}"
       - "path.data=/usr/share/opensearch/data"
       - "path.logs=/usr/share/opensearch/logs"
       - "cluster.name=ot-es-cluster"
@@ -68,6 +76,8 @@ services:
       start_period: 30s
     networks:
       - ot-platform
+    command:
+        ./opensearch-docker-entrypoint.sh
 
   nginx:
     image: ${OTOPS_PROFILE_NGINX_DOCKER_IMAGE_NAME}:${OTOPS_PROFILE_NGINX_DOCKER_IMAGE_TAG}
@@ -83,7 +93,7 @@ services:
     image: ${OTOPS_PROFILE_OPENAI_API_DOCKER_IMAGE_NAME}:${OTOPS_PROFILE_OPENAI_API_DOCKER_IMAGE_TAG}
     container_name: ot-ai-api
     ports:
-      - 8081:8080 
+      - 8081:8080
     environment:
       OPENAI_TOKEN: ${OTOPS_PROFILE_OPENAI_TOKEN}
     networks:
