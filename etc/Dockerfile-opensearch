@@ -1,0 +1,12 @@
+ARG TAG=latest
+
+FROM opensearchproject/opensearch:${TAG}
+
+ARG UID
+ARG GID
+
+USER root
+
+RUN chown -R ${UID}:${GID} /usr/share/opensearch /usr/share/opensearch/data /usr/share/opensearch/logs /usr/share/opensearch/config
+
+USER ${UID}:${GID}
