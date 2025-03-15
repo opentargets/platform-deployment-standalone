@@ -1,9 +1,2 @@
-# Makefile external environment from .env file
-.env
-# Compute folders
-release
 deployment
-# Active profile
-config_profile.sh
-# Temporary files
-tmp
+downloads
