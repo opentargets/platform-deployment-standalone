@@ -1,0 +1,73 @@
+services:
+  opensearch:
+    container_name: ot-os
+    build:
+      context: .
+      dockerfile: ./Dockerfile-opensearch
+      args:
+        - TAG=${OT_OPENSEARCH_TAG:-latest}
+        - UID=${OT_OPENSEARCH_UID:-1000}
+        - GID=${OT_OPENSEARCH_GID:-1000}
+    environment:
+      "network.host": "0.0.0.0"
+      "discovery.type": "single-node"
+      "discovery.seed_hosts": "[]"
+      "DISABLE_SECURITY_PLUGIN": "true"
+      "OPENSEARCH_JAVA_OPTS": "-Xms2g -Xmx4g"
+    ports:
+      - 127.0.0.1:9200:9200
+    volumes:
+      - ${OT_DEPLOYMENT_FOLDER}/opensearch/data:/usr/share/opensearch/data
+    ulimits:
+      memlock: -1
+      nofile: 65536
+    healthcheck:
+      test: ["CMD", "curl", "http://127.0.0.1:9200/_cluster/health?wait_for_status=green"]
+      start_period: 30s
+
+  clickhouse:
+    container_name: ot-ch
+    image: clickhouse/clickhouse-server:${OT_CLICKHOUSE_TAG:-latest}
+    ports:
+      - 127.0.0.1:8123:8123
+    volumes:
+      - ${OT_DEPLOYMENT_FOLDER}/clickhouse/config.d:/etc/clickhouse-server/config.d
+      - ${OT_DEPLOYMENT_FOLDER}/clickhouse/users.d:/etc/clickhouse-server/users.d
+      - ${OT_DEPLOYMENT_FOLDER}/clickhouse/data:/var/lib/clickhouse
+    ulimits:
+      nofile: 262144
+
+  api:
+    container_name: ot-api
+    image: ${OT_API_IMAGE:-ghcr.io/opentargets/platform-api}:${OT_API_TAG:-latest}
+    environment:
+      SLICK_CLICKHOUSE_URL: "jdbc:clickhouse://clickhouse:8123"
+      ELASTICSEARCH_HOST: "opensearch"
+    ports:
+      - 8081:8080
+    depends_on:
+      - opensearch
+      - clickhouse
+
+  api-openai:
+    container_name: ot-api-openai
+    image: ${OT_API_OPENAI_IMAGE:-quay.io/opentargets/ot-ai-api}:${OT_API_OPENAI_TAG:-latest}
+    environment:
+      OPENAI_TOKEN_FILE: /run/secrets/openai_token
+    secrets:
+      - openai_token
+    ports:
+      - 8082:8080
+
+  webapp:
+    container_name: ot-webapp
+    image: ${OT_WEBAPP_IMAGE:-ghcr.io/opentargets/ot-ui-apps/ot-ui-apps}:${OT_WEBAPP_TAG:-latest}
+    environment:
+      WEBAPP_API_URL: "http://${OT_API_HOSTNAME:-127.0.0.1:8081}/api/v4/graphql"
+      WEBAPP_OPENAI_URL: "http://${OT_API_HOSTNAME:-127.0.0.1:8082}"
+    ports:
+      - ${OT_WEBAPP_PORT:-8080}:8080
+
+secrets:
+  openai_token:
+    file: ${OT_DEPLOYMENT_FOLDER}/openai_token
