@@ -151,6 +151,7 @@ resource "google_compute_instance" "dev_vm" {
 
     # run platform
     export OT_API_HOSTNAME="${var.OT_SUBDOMAIN_NAME}.${var.OT_DOMAIN_NAME}:8081"
+    export OT_API_OPENAI_HOSTNAME="${var.OT_SUBDOMAIN_NAME}.${var.OT_DOMAIN_NAME}:8082"
     export OT_DEPLOYMENT_FOLDER="/platform"
     export OT_WEBAPP_PORT=80
     cd /platform
