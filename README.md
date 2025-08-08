@@ -59,33 +59,33 @@ service_account_name="example"
 project="example-project"
 zone="europe-west1-d"
 
-gcloud projects add-iam-policy-binding $project$ \
-	--member="serviceAccount:$service_account_name@$project$.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding $project \
+	--member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
 	--role="roles/compute.instanceAdmin.v1" \
-	--condition='expression=resource.name.startsWith("projects/$project$/zones/europe-west1-dinstances/devinstance-"),title="Limited to devinstance instances"'
+	--condition='expression=resource.name.startsWith("projects/'$project'/zones/europe-west1-d/instances/devinstance-"),title="Limited to devinstance instances"'
 
-gcloud projects add-iam-policy-binding $project$ \
-	--member="serviceAccount:$service_account_name@$project$.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding $project \
+	--member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
 	--role="roles/compute.storageAdmin" \
-	--condition='expression=resource.name.startsWith("projects/$project$/zones/europe-west1-d/disks/devinstance-"),title="Limited to devinstance disks"'
+	--condition='expression=resource.name.startsWith("projects/'$project'/zones/europe-west1-d/disks/devinstance-"),title="Limited to devinstance disks"'
 
-gcloud projects add-iam-policy-binding $project$ \
-	--member="serviceAccount:$service_account_name@$project$.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding $project \
+	--member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
 	--role="roles/secretmanager.secretAccessor" \
 	--condition='expression=resource.name.startsWith("projects/426265110888/secrets/openai-token"),title="Limited to openai token secret"'
 
-gcloud projects add-iam-policy-binding $project$ \
-	--member="serviceAccount:$service_account_name@$project$.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding $project \
+	--member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
 	--role="roles/compute.securityAdmin" \
-	--condition='expression=resource.name.startsWith("projects/$project$/global/firewalls/devinstance-"),title="Limited to devinstance firewall rules"'
+	--condition='expression=resource.name.startsWith("projects/'$project'/global/firewalls/devinstance-"),title="Limited to devinstance firewall rules"'
 
-gcloud projects add-iam-policy-binding $project$ \
-  --member="serviceAccount:$service_account_name@$project$.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding $project \
+  --member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
   --role="roles/compute.networkAdmin" \
-  --condition='expression=resource.name=="projects/$project$/global/networks/default",title="Limited to default network"'
+  --condition='expression=resource.name=="projects/'$project'/global/networks/default",title="Limited to default network"'
 
-gcloud projects add-iam-policy-binding $project$ \
-	--member="serviceAccount:$service_account_name@$project$.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding $project \
+	--member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
 	--role="roles/dns.admin"
 ```
 

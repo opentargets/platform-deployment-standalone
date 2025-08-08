@@ -2,7 +2,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 6.46.0"
+      version = ">= 6.47.0"
     }
   }
 }
@@ -10,24 +10,26 @@ terraform {
 variable "OT_RELEASE" { type = string }
 variable "OT_DOMAIN_NAME" { type = string }
 variable "OT_SUBDOMAIN_NAME" { type = string }
+variable "OT_DAYS_TO_LIVE" { type = number }
+variable "OT_GCP_SECRET_OPENAI_TOKEN" { type = string }
 variable "OT_GCP_PROJECT" { type = string }
 variable "OT_GCP_REGION" { type = string }
 variable "OT_GCP_ZONE" { type = string }
-variable "OT_GCP_SA" { type = string }
-variable "OT_GCP_SECRET_OPENAI_TOKEN" { type = string }
 variable "OT_GCP_CLOUD_DNS_ZONE" { type = string }
-variable "OT_DAYS_TO_LIVE" { type = number }
+variable "OT_GCP_NETWORK" { type = string }
+variable "OT_GCP_SA" { type = string }
 
 // FIREWALL RULES
-resource "google_compute_firewall" "devinstance_allow_apis" {
-  name          = "devinstance-allow-apis-${var.OT_SUBDOMAIN_NAME}"
+resource "google_compute_firewall" "devinstance_allow" {
+  count         = var.OT_GCP_NETWORK == "default" ? 1 : 0
+  name          = "devinstance-allow-${var.OT_SUBDOMAIN_NAME}"
   project       = var.OT_GCP_PROJECT
   network       = "default"
   source_ranges = ["0.0.0.0/0"]
   target_tags   = ["devinstance"]
   allow {
     protocol = "tcp"
-    ports    = ["8081", "8082"]
+    ports    = ["80", "8081", "8082"]
   }
 }
 
@@ -72,7 +74,7 @@ resource "google_compute_instance" "dev_vm" {
     device_name = "datavolume-ch"
   }
   network_interface {
-    network = "default"
+    network = var.OT_GCP_NETWORK
     access_config {
       // ephemeral public ip
     }
@@ -136,8 +138,10 @@ resource "google_compute_instance" "dev_vm" {
 
     # schedule cleanup script
     cat > /platform/cleanup.sh <<-CLEANUP_EOF
+      if [ "${var.OT_GCP_NETWORK}" == "default" ]; then
+        gcloud compute firewall-rules delete "devinstance-allow-${var.OT_SUBDOMAIN_NAME}" --project="${var.OT_GCP_PROJECT}" --quiet
+      fi
       gcloud dns record-sets delete "${var.OT_SUBDOMAIN_NAME}.${var.OT_DOMAIN_NAME}." --type=A --zone="${var.OT_GCP_CLOUD_DNS_ZONE}" --project="${var.OT_GCP_PROJECT}" --quiet
-      gcloud compute firewall-rules delete "devinstance-allow-apis-${var.OT_SUBDOMAIN_NAME}" --project="${var.OT_GCP_PROJECT}" --quiet
       gcloud compute instances delete "devinstance-${var.OT_SUBDOMAIN_NAME}" --zone="${var.OT_GCP_ZONE}" --project="${var.OT_GCP_PROJECT}" --quiet
     CLEANUP_EOF
     chmod +x /platform/cleanup.sh
