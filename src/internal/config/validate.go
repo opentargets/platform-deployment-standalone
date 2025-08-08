@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 // ValidateURL checks if the provided string is a valid URL.
@@ -66,23 +65,17 @@ func ValidateSubdomain(domainName *string) func(s string) error {
 }
 
 // ValidateDaysToLive checks if the number of days to live is valid.
-func ValidateDaysToLive(subdomainName *string) func(s string) error {
-	return func(s string) error {
-		if s == "" {
-			return errors.New("days to live cannot be empty")
-		}
-
-		d, err := strconv.ParseInt(s, 10, 64)
-		if err != nil || d < 0 || d > CloudDeploymentMaxDaysToLive {
-			return fmt.Errorf("days to live must be a number between 0 and %d", CloudDeploymentMaxDaysToLive)
-		}
-
-		currentSubdomainName := *subdomainName
-		if s == "0" && strings.ToLower(currentSubdomainName) != "dev" {
-			return errors.New("only 'dev' subdomain can live forever")
-		}
-		return nil
+func ValidateDaysToLive(s string) error {
+	if s == "" {
+		return errors.New("days to live cannot be empty")
 	}
+
+	d, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || d < 0 || d > CloudDeploymentMaxDaysToLive {
+		return fmt.Errorf("days to live must be a number between 0 and %d", CloudDeploymentMaxDaysToLive)
+	}
+
+	return nil
 }
 
 // ValidateGCPResource checks if the GCP resource name is valid.

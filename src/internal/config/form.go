@@ -19,40 +19,33 @@ func Form(c *Config) *huh.Form {
 
 		huh.NewGroup(
 			huh.NewInput().
-				Title("Data release").
-				Description("The release should be in the form YY.MM, e.g. 25.06 for the June 2025 release.").
+				Title("Release").
+				Description("The data release name should be in the form YY.MM, e.g. 25.06 for the June 2025 release.").
 				Value(&c.Release.Value),
 			huh.NewInput().
 				Title("API docker image name").
 				Value(&c.APIImage.Value),
-
 			huh.NewInput().
 				Title("API image tag").
 				Description("Check available tags at https://github.com/opentargets/platform-api/pkgs/container/platform-api").
 				Value(&c.APITag.Value),
-
 			huh.NewInput().
 				Title("OpenAI API image name").
 				Value(&c.APIOpenAIImage.Value),
-
 			huh.NewInput().
 				Title("OpenAI API image tag").
 				Description("Check available tags at https://github.com/opentargets/ot-ai-api/pkgs/container/ot-ai-api").
 				Value(&c.APIOpenAITag.Value),
-
 			huh.NewInput().
 				Title("WebApp image name").
 				Value(&c.WebAppImage.Value),
-
 			huh.NewInput().
 				Title("WebApp image tag").
 				Description("Check available tags at https://github.com/opentargets/ot-ui-apps/pkgs/container/ot-ui-apps").
 				Value(&c.WebAppTag.Value),
-
 			huh.NewInput().
 				Title("Opensearch image tag").
 				Value(&c.OpensearchTag.Value),
-
 			huh.NewInput().
 				Title("ClickHouse image tag").
 				Value(&c.ClickhouseTag.Value),
@@ -68,7 +61,6 @@ func Form(c *Config) *huh.Form {
 				CharLimit(2048).
 				Validate(huh.ValidateNotEmpty()).
 				Validate(ValidateURL),
-
 			huh.NewInput().
 				Title("OpenAI API token").
 				Value(&c.APIOpenAIToken.Value),
@@ -82,42 +74,44 @@ func Form(c *Config) *huh.Form {
 			huh.NewInput().
 				Title("Domain name").
 				Value(&c.DomainName.Value),
-
 			huh.NewInput().
 				Title("Subdomain name").
 				Value(&c.SubdomainName.Value).
 				Validate(ValidateSubdomain(&c.DomainName.Value)),
-
 			huh.NewInput().
 				Title("Days to live").
-				Description("The deployment will be destroyed after this many days.").
+				Description("The deployment will be destroyed after this many days (input 0 for no expiry)").
 				Value(&c.DaysToLive.Value).
-				Validate(ValidateDaysToLive(&c.SubdomainName.Value)),
-
-			huh.NewInput().
-				Title("GCP Project").
-				Value(&c.GCPProject.Value).
-				Validate(ValidateGCPResource()),
-
-			huh.NewInput().
-				Title("GCP Region").
-				Value(&c.GCPRegion.Value).
-				Validate(ValidateGCPResource()),
-
-			huh.NewInput().
-				Title("GCP Zone").
-				Value(&c.GCPZone.Value).
-				Validate(ValidateGCPResource()),
-
+				Validate(ValidateDaysToLive),
 			huh.NewInput().
 				Title("GCP Secret for OpenAI API token").
 				Value(&c.GCPSecretOpenAIToken.Value).
 				Validate(ValidateGCPResource()),
-
+			huh.NewInput().
+				Title("GCP Project").
+				Value(&c.GCPProject.Value).
+				Validate(ValidateGCPResource()),
+			huh.NewInput().
+				Title("GCP Region").
+				Value(&c.GCPRegion.Value).
+				Validate(ValidateGCPResource()),
+			huh.NewInput().
+				Title("GCP Zone").
+				Value(&c.GCPZone.Value).
+				Validate(ValidateGCPResource()),
 			huh.NewInput().
 				Title("GCP Cloud DNS Zone").
 				Value(&c.GCPCloudDNSZone.Value).
 				Validate(ValidateGCPResource()),
+			huh.NewInput().
+				Title("GCP Network").
+				Description("The name of the GCP Network.").
+				Value(&c.GCPNetwork.Value).
+				Validate(ValidateGCPResource()),
+			huh.NewInput().
+				Title("GCP Service Account").
+				Description("The service account to use for the deployment. Refer to the README for more information.").
+				Value(&c.GCPServiceAccount.Value),
 		).
 			Title("Cloud Deployment Settings").
 			WithHideFunc(func() bool {
