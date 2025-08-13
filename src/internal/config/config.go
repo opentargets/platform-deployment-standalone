@@ -41,16 +41,26 @@ type Config struct {
 	Location Setting
 
 	// Data and software versions form group.
-	// Release is the version of Open Targets to deploy (e.g., "25.06").
+	// Release is the version of Open Targets to deploy (e.g., "25.06"). Local-exclusive.
 	Release Setting
+	// ReleaseURL is the base URL (root path) of the release. Local-exclusive.
+	ReleaseURL Setting
+	// SnapshotOS is the name of the snapshot for the OpenSearch disk. Cloud-exclusive.
+	SnapshotOS Setting
+	// SnapshotCH is the name of the snapshot for the ClickHouse disk. Cloud-exclusive.
+	SnapshotCH Setting
+	// Flavor is the deployment flavor, either platform or ppp. Cloud-exclusive.
+	Flavor Setting
 	// APIImage is the name of the Docker image for the API.
 	APIImage Setting
 	// APITag is the tag of the Docker image for the API.
 	APITag Setting
 	// APIOpenAIImage is the name of the Docker image for the OpenAI API.
 	APIOpenAIImage Setting
-	// APIOpenAITag is the tag of the Docker image for the OpenAI API.
+	// APIOpenAITag is the tag of the Docker image for the OpenAI API. Local-exclusive.
 	APIOpenAITag Setting
+	// APIOpenAIToken is the token for OpenAI API access.
+	APIOpenAIToken Setting
 	// WebAppImage is the name of the Docker image for the WebApp.
 	WebAppImage Setting
 	// WebAppTag is the tag of the Docker image for the WebApp.
@@ -59,12 +69,6 @@ type Config struct {
 	OpensearchTag Setting
 	// ClickHouseTag is the tag of the Docker image for ClickHouse.
 	ClickhouseTag Setting
-
-	// Local Deployment Settings form group.
-	// ReleaseURL is the base URL (root path) of the release.
-	ReleaseURL Setting
-	// APIOpenAIToken is the token for OpenAI API access.
-	APIOpenAIToken Setting
 
 	// Cloud Deployment Settings form group.
 	// DomainName is the domain name for the cloud deployment.
@@ -88,7 +92,7 @@ type Config struct {
 	// GCPServiceAccount is the Google Cloud Platform service account used.
 	GCPServiceAccount Setting
 
-	// Settings that
+	// Settings that are not shown in the form.
 	// DeploymentFolder is the folder where the deployment files are stored.
 	DeploymentFolder Setting
 }
@@ -114,6 +118,9 @@ func New(defaultsFilePath string) Config {
 	return Config{
 		Location:             Setting{Env: "OT_DEPLOYMENT_LOCATION", Value: env["OT_DEPLOYMENT_LOCATION"]},
 		Release:              Setting{Env: "OT_RELEASE", Value: env["OT_RELEASE"]},
+		SnapshotCH:           Setting{Env: "TF_VAR_OT_SNAPSHOT_CH", Value: env["TF_VAR_OT_SNAPSHOT_CH"]},
+		SnapshotOS:           Setting{Env: "TF_VAR_OT_SNAPSHOT_OS", Value: env["TF_VAR_OT_SNAPSHOT_OS"]},
+		Flavor:               Setting{Env: "OT_FLAVOR", Value: env["OT_WEBAPP_FLAVOR"]},
 		APIImage:             Setting{Env: "OT_API_IMAGE", Value: env["OT_API_IMAGE"]},
 		APITag:               Setting{Env: "OT_API_TAG", Value: env["OT_API_TAG"]},
 		APIOpenAIImage:       Setting{Env: "OT_API_OPENAI_IMAGE", Value: env["OT_API_OPENAI_IMAGE"]},
