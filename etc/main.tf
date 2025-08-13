@@ -7,7 +7,8 @@ terraform {
   }
 }
 
-variable "OT_RELEASE" { type = string }
+variable "OT_SNAPSHOT_CH" { type = string }
+variable "OT_SNAPSHOT_OS" { type = string }
 variable "OT_DOMAIN_NAME" { type = string }
 variable "OT_SUBDOMAIN_NAME" { type = string }
 variable "OT_DAYS_TO_LIVE" { type = number }
@@ -34,20 +35,20 @@ resource "google_compute_firewall" "devinstance_allow" {
 }
 
 // DISKS
-resource "google_compute_disk" "opensearch_data_volume" {
-  name     = "devinstance-datavolume-os-${var.OT_SUBDOMAIN_NAME}"
-  project  = var.OT_GCP_PROJECT
-  zone     = var.OT_GCP_ZONE
-  type     = "pd-balanced"
-  snapshot = "projects/${var.OT_GCP_PROJECT}/global/snapshots/platform-${replace(var.OT_RELEASE, ".", "")}-os"
-}
-
 resource "google_compute_disk" "clickhouse_data_volume" {
   name     = "devinstance-datavolume-ch-${var.OT_SUBDOMAIN_NAME}"
   project  = var.OT_GCP_PROJECT
   zone     = var.OT_GCP_ZONE
   type     = "pd-balanced"
-  snapshot = "projects/${var.OT_GCP_PROJECT}/global/snapshots/platform-${replace(var.OT_RELEASE, ".", "")}-ch"
+  snapshot = "projects/${var.OT_GCP_PROJECT}/global/snapshots/${var.OT_SNAPSHOT_CH}"
+}
+
+resource "google_compute_disk" "opensearch_data_volume" {
+  name     = "devinstance-datavolume-os-${var.OT_SUBDOMAIN_NAME}"
+  project  = var.OT_GCP_PROJECT
+  zone     = var.OT_GCP_ZONE
+  type     = "pd-balanced"
+  snapshot = "projects/${var.OT_GCP_PROJECT}/global/snapshots/${var.OT_SNAPSHOT_OS}"
 }
 
 // COMPUTE INSTANCE

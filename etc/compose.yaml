@@ -65,6 +65,7 @@ services:
     environment:
       WEBAPP_API_URL: "http://${OT_API_HOSTNAME:-127.0.0.1:8081}/api/v4/graphql"
       WEBAPP_OPENAI_URL: "http://${OT_API_OPENAI_HOSTNAME:-127.0.0.1:8082}"
+      WEBAPP_FLAVOR: "${OT_WEBAPP_FLAVOR:-platform}"
     ports:
       - ${OT_WEBAPP_PORT:-8080}:8080
 

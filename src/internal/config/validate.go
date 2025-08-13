@@ -79,15 +79,71 @@ func ValidateDaysToLive(s string) error {
 }
 
 // ValidateGCPResource checks if the GCP resource name is valid.
-func ValidateGCPResource() func(s string) error {
-	return func(s string) error {
-		if s == "" || len(s) > 63 {
-			return errors.New("gcp resource name must be between 1 and 63 characters long")
-		}
+func ValidateGCPResource(s string) error {
+	if s == "" || len(s) > 63 {
+		return errors.New("gcp resource name must be between 1 and 63 characters long")
+	}
 
-		validChars := regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
-		if !validChars.MatchString(s) {
-			return errors.New("gcp resource name can only contain lowercase letters, numbers, and hyphens, and must start with a letter")
+	validChars := regexp.MustCompile(`^[a-z]([-a-z0-9]*[a-z0-9])?$`)
+	if !validChars.MatchString(s) {
+		return errors.New("gcp resource name can only contain lowercase letters, numbers, and hyphens, and must start with a letter")
+	}
+	return nil
+}
+
+// ValidateGCPSnapshot checks if the GCP snapshot exists.
+func ValidateGCPSnapshot(s string) error {
+	g := ValidateGCPResource(s)
+	if g != nil {
+		return g
+	}
+
+	// TODO: Implement actual GCP snapshot existence check.
+	return nil
+}
+
+// ValidateGCPSecret checks if the GCP secret exists.
+func ValidateGCPSecret(s string) error {
+	g := ValidateGCPResource(s)
+	if g != nil {
+		return g
+	}
+
+	// TODO: Implement actual GCP secret existence check.
+	return nil
+}
+
+// ValidateGCPProject checks if the GCP project name is valid.
+func ValidateGCPProject(s string) error {
+	g := ValidateGCPResource(s)
+	if g != nil {
+		return g
+	}
+
+	// TODO: Implement actual GCP project existence check.
+	return nil
+}
+
+// ValidateGCPCloudDNSZone checks if the GCP Cloud DNS zone is valid.
+func ValidateGCPCloudDNSZone(s string) error {
+	g := ValidateGCPResource(s)
+	if g != nil {
+		return g
+	}
+
+	// TODO: Implement actual GCP Cloud DNS zone existence check.
+	return nil
+}
+
+// ValidateGCPNetwork checks if the GCP network is safe for ppp deployments.
+func ValidateGCPNetwork(flavor *string) func(s string) error {
+	return func(s string) error {
+		g := ValidateGCPResource(s)
+		if g != nil {
+			return g
+		}
+		if *flavor == "ppp" && s != "devinstance-ppp" {
+			return errors.New("gcp network must be devinstance-ppp for ppp deployments")
 		}
 		return nil
 	}

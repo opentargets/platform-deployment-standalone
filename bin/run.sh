@@ -39,7 +39,6 @@ set -a
 # shellcheck disable=SC1091
 source "$OT_DEPLOYMENT_FOLDER/config"
 set +a
-export TF_VAR_OT_RELEASE="$OT_RELEASE"
 cp etc/* "$OT_DEPLOYMENT_FOLDER"
 
 # local deployment
