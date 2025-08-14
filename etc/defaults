@@ -27,3 +27,4 @@ TF_VAR_OT_GCP_NETWORK="default"
 TF_VAR_OT_GCP_SA="devinstance-manager@open-targets-eu-dev.iam.gserviceaccount.com"
 TF_VAR_OT_SNAPSHOT_OS="platform-2506-os"
 TF_VAR_OT_SNAPSHOT_CH="platform-2506-ch"
+TF_VAR_OT_WEBAPP_FLAVOR=$OT_WEBAPP_FLAVOR

@@ -77,8 +77,12 @@ elif [ "$OT_DEPLOYMENT_LOCATION" = "cloud" ]; then
   echo "applying terraform configuration, this takes about 5 minutes..."
   if terraform -chdir="$OT_DEPLOYMENT_FOLDER" apply -auto-approve -no-color >>"$OT_DEPLOYMENT_FOLDER/terraform.log" 2>&1; then
     echo "deployment successful, Open Targets Platform will be available at:"
+    echo ""
     echo "  http://${TF_VAR_OT_SUBDOMAIN_NAME}.${TF_VAR_OT_DOMAIN_NAME}  "
-    echo "it may take another 5 minutes for the deployment to be fully ready,"
+    echo "  http://api.${TF_VAR_OT_SUBDOMAIN_NAME}.${TF_VAR_OT_DOMAIN_NAME}  (API)"
+    echo "  http://ai.${TF_VAR_OT_SUBDOMAIN_NAME}.${TF_VAR_OT_DOMAIN_NAME}  (AI API)"
+    echo ""
+    echo "It may take another 5 minutes for the deployment to be fully ready,"
     echo "if the web does not load or errors show up, please wait a bit longer"
     echo "and try again"
   else
