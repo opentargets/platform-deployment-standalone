@@ -108,9 +108,9 @@ func randomString(length int) string {
 	return string(randomString)
 }
 
-// New creates a new Config instance with default values.
-func New(defaultsFilePath string) Config {
-	env, err := godotenv.Read(defaultsFilePath)
+// New creates a new Config instance from env vars loaded from a file.
+func New(configFilePath string) Config {
+	env, err := godotenv.Read(configFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}

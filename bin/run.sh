@@ -69,7 +69,7 @@ elif [ "$OT_DEPLOYMENT_LOCATION" = "cloud" ]; then
   touch "$OT_DEPLOYMENT_FOLDER/terraform.log"
 
   echo "initializing terraform"
-  if ! terraform -chdir="$OT_DEPLOYMENT_FOLDER" init -no-color >>"$OT_DEPLOYMENT_FOLDER/terraform.log" 2>&1; then
+  if ! terraform -chdir="$OT_DEPLOYMENT_FOLDER" init -backend-config=default.tfbackend -no-color >>"$OT_DEPLOYMENT_FOLDER/terraform.log" 2>&1; then
     echo "terraform init failed"
     exit 1
   fi

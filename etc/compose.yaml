@@ -49,22 +49,22 @@ services:
       - opensearch
       - clickhouse
 
-  api-openai:
-    container_name: ot-api-openai
-    image: ${OT_API_OPENAI_IMAGE:-quay.io/opentargets/ot-ai-api}:${OT_API_OPENAI_TAG:-latest}
+  api-ai:
+    container_name: ot-api-ai
+    image: ${OT_API_AI_IMAGE:-quay.io/opentargets/ot-ai-api}:${OT_API_AI_TAG:-latest}
     environment:
       OPENAI_TOKEN_FILE: /run/secrets/openai_token
     secrets:
       - openai_token
     ports:
-      - 8082:8080
+      - 8082:80
 
   webapp:
     container_name: ot-webapp
     image: ${OT_WEBAPP_IMAGE:-ghcr.io/opentargets/ot-ui-apps/ot-ui-apps}:${OT_WEBAPP_TAG:-latest}
     environment:
-      WEBAPP_API_URL: "http://${OT_API_HOSTNAME:-127.0.0.1:8081}/api/v4/graphql"
-      WEBAPP_OPENAI_URL: "http://${OT_API_OPENAI_HOSTNAME:-127.0.0.1:8082}"
+      WEBAPP_API_URL: "${OT_API_URL:-http://127.0.0.1:8081}/api/v4/graphql"
+      WEBAPP_OPENAI_URL: "${OT_API_AI_URL:-http://127.0.0.1:8082}"
       WEBAPP_FLAVOR: "${OT_WEBAPP_FLAVOR:-platform}"
     ports:
       - ${OT_WEBAPP_PORT:-8080}:8080
