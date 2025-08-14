@@ -43,13 +43,13 @@ Service Account with the following roles:
 * `roles/compute.instanceAdmin.v1` to delete a machine to host the platform
 * `roles/compute.storageAdmin` to delete the disks holding the data
 * `roles/compute.securityAdmin` to delete firewall rules that allow access to
-the API and OpenAI API
+the API and AI API
 * `roles/compute.networkAdmin` to allow modifying the network to delete firewall
 rules
-* `roles/dns.admin` to remove the record set for the deployment hostname from
-Cloud DNS
+* `roles/dns.admin` to add and remove record sets for the deployment hostname and
+from letsencrypt's certificate validation method from Cloud DNS.
 * `secretmanager.secretAccessor` to access the secret holding your token for the
-OpenAI API
+AI API
 
 You can add those roles to an account in a restricted fashion by using these
 commands:
@@ -92,6 +92,9 @@ gcloud projects add-iam-policy-binding $project \
 You also need a secret named `openai_token`, which holds your OpenAI API Token,
 used for the literature summarization feature. This is optional, but it must be
 set to an empty string or the deployment will fail.
+
+It is required to edit the `etc/default.tfbackend` file and change the `bucket`
+and `prefix` values inside to ones you own.
 
 
 # Copyright

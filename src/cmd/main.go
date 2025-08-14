@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -13,19 +14,32 @@ import (
 )
 
 func main() {
-	lipgloss.SetColorProfile(termenv.TrueColor)
-
-	defaultsFilePath, err := filepath.Abs("./etc/defaults")
+	defaultConfigPath, err := filepath.Abs("./etc/defaults")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// present the configuration form
-	c := config.New(defaultsFilePath)
-	f := config.Form(&c)
-	err = f.Run()
-	if err != nil {
-		log.Fatal(err)
+	var c config.Config
+	var configFilePath string
+	flag.StringVar(&configFilePath, "config", "", "path to the configuration file")
+
+	if configFilePath != "" {
+		// parse a configuration file
+		configFilePath, err = filepath.Abs(configFilePath)
+		if err != nil {
+			log.Fatalf("configuration file not found %s: %v", configFilePath, err)
+		}
+		c = config.New(configFilePath)
+
+	} else {
+		// present the configuration form
+		lipgloss.SetColorProfile(termenv.TrueColor)
+		c = config.New(defaultConfigPath)
+		f := config.Form(&c)
+		err = f.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// set the deployment folder based on the configuration

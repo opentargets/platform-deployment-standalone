@@ -1,0 +1,45 @@
+server {
+  listen 80;
+  server_name ${OT_SUBDOMAIN_NAME}.${OT_DOMAIN_NAME};
+  return 301 https://\$host\$request_uri;
+}
+
+server {
+  listen 443 ssl;
+  server_name ${OT_SUBDOMAIN_NAME}.${OT_DOMAIN_NAME};
+
+  ssl_certificate /etc/letsencrypt/live/${OT_SUBDOMAIN_NAME}.${OT_DOMAIN_NAME}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${OT_SUBDOMAIN_NAME}.${OT_DOMAIN_NAME}/privkey.pem;
+
+  # api
+  location /api {
+    proxy_pass http://localhost:8081;
+    # root in the api is /, not /api, so we need to rewrite the URI
+    if ($uri = /api) {
+        rewrite ^ / break;
+    }
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  # ai literature summarization api
+  location /literature {
+    proxy_pass http://localhost:8082;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  # web app
+  location / {
+    proxy_pass http://localhost:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
