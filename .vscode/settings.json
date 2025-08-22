@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "**/defaults-local": "dotenv",
+    "**/defaults-cloud": "dotenv",
+    "**/config": "dotenv",
+  }
+}

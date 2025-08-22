@@ -17,7 +17,7 @@ services:
     ports:
       - 127.0.0.1:9200:9200
     volumes:
-      - ${OT_DEPLOYMENT_FOLDER}/opensearch/data:/usr/share/opensearch/data
+      - ./opensearch/data:/usr/share/opensearch/data
     ulimits:
       memlock: -1
       nofile: 65536
@@ -31,9 +31,9 @@ services:
     ports:
       - 127.0.0.1:8123:8123
     volumes:
-      - ${OT_DEPLOYMENT_FOLDER}/clickhouse/config.d:/etc/clickhouse-server/config.d
-      - ${OT_DEPLOYMENT_FOLDER}/clickhouse/users.d:/etc/clickhouse-server/users.d
-      - ${OT_DEPLOYMENT_FOLDER}/clickhouse/data:/var/lib/clickhouse
+      - ./clickhouse/config.d:/etc/clickhouse-server/config.d
+      - ./clickhouse/users.d:/etc/clickhouse-server/users.d
+      - ./clickhouse/data:/var/lib/clickhouse
     ulimits:
       nofile: 262144
 
@@ -57,18 +57,18 @@ services:
     secrets:
       - openai_token
     ports:
-      - 8082:80
+      - 8082:8080
 
   webapp:
     container_name: ot-webapp
     image: ${OT_WEBAPP_IMAGE:-ghcr.io/opentargets/ot-ui-apps/ot-ui-apps}:${OT_WEBAPP_TAG:-latest}
     environment:
-      WEBAPP_API_URL: "${OT_API_URL:-http://127.0.0.1:8081}/api/v4/graphql"
-      WEBAPP_OPENAI_URL: "${OT_API_AI_URL:-http://127.0.0.1:8082}"
+      WEBAPP_API_URL: "${OT_WEBAPP_API_URL:-http://127.0.0.1:8081/api/v4/graphql}"
+      WEBAPP_OPENAI_URL: "${OT_WEBAPP_OPENAI_URL:-http://127.0.0.1:8082}"
       WEBAPP_FLAVOR: "${OT_WEBAPP_FLAVOR:-platform}"
     ports:
       - ${OT_WEBAPP_PORT:-8080}:8080
 
 secrets:
   openai_token:
-    file: ${OT_DEPLOYMENT_FOLDER}/openai_token
+    file: ./openai_token

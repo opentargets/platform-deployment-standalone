@@ -1,0 +1,37 @@
+# Open Targets cloud deployment default config
+OT_DEPLOYMENT_TYPE="cloud"
+
+# GCP global settings
+TF_VAR_OT_GCP_PROJECT="open-targets-eu-dev"
+TF_VAR_OT_GCP_REGION="europe-west1"
+TF_VAR_OT_GCP_ZONE="europe-west1-d"
+OT_OPS_URI="gs://open-targets-ops/terraform/devinstance"
+
+# Deployment settings
+TF_VAR_OT_DOMAIN_NAME="opentargets.xyz"
+TF_VAR_OT_SUBDOMAIN_NAME="" # leave default empty so it is generated randomly by the configurator
+TF_VAR_OT_DAYS_TO_LIVE="2"
+OT_WEBAPP_FLAVOR="platform"
+
+# Data snapshots
+TF_VAR_OT_SNAPSHOT_CH="platform-2506-ch"
+TF_VAR_OT_SNAPSHOT_OS="platform-2506-os"
+
+# Software versions
+OT_API_IMAGE="ghcr.io/opentargets/platform-api"
+OT_API_TAG="latest"
+OT_API_AI_IMAGE="ghcr.io/opentargets/ot-ai-api"
+OT_API_AI_TAG="latest"
+OT_API_AI_TOKEN=""
+OT_WEBAPP_IMAGE="ghcr.io/opentargets/ot-ui-apps/ot-ui-apps"
+OT_WEBAPP_TAG="latest"
+OT_CLICKHOUSE_TAG="25.6.1.3206"
+OT_OPENSEARCH_TAG="3.1.0"
+
+# Addtional GCP settings
+TF_VAR_OT_GCP_SECRET_AI_TOKEN="openai-token"
+TF_VAR_OT_GCP_CLOUD_DNS_ZONE="opentargets-xyz"
+TF_VAR_OT_GCP_NETWORK="default"
+TF_VAR_OT_GCP_SA="devinstance-manager@open-targets-eu-dev.iam.gserviceaccount.com"
+TF_VAR_BACKEND_BUCKET="open-targets-ops"
+TF_VAR_BACKEND_PREFIX="terraform/devinstance"

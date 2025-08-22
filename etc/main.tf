@@ -18,6 +18,14 @@ variable "OT_GCP_CLOUD_DNS_ZONE" { type = string }
 variable "OT_GCP_NETWORK" { type = string }
 variable "OT_GCP_SA" { type = string }
 
+data "external" "whoami" {
+  program = ["sh", "-c", "echo '{\"username\":\"'$(whoami)'\"}'"]
+}
+
+locals {
+  user = data.external.whoami.result.username
+}
+
 // FIREWALL RULES
 resource "google_compute_firewall" "devinstance_allow" {
   name          = "devinstance-allow-${var.OT_SUBDOMAIN_NAME}"
@@ -86,6 +94,7 @@ resource "google_compute_instance" "dev_vm" {
     "tool"        = "standalone"
     "environment" = "development"
     "created_by"  = "terraform"
+    "author"      = local.user
   }
   tags = ["devinstance"]
   metadata = {
@@ -96,8 +105,26 @@ resource "google_compute_instance" "dev_vm" {
       OT_DOMAIN_NAME    = var.OT_DOMAIN_NAME
       OT_SUBDOMAIN_NAME = var.OT_SUBDOMAIN_NAME,
     }),
+    cleanup = templatefile("cleanup.sh.tftpl", {
+      OT_DOMAIN_NAME        = var.OT_DOMAIN_NAME,
+      OT_SUBDOMAIN_NAME     = var.OT_SUBDOMAIN_NAME,
+      OT_GCP_PROJECT        = var.OT_GCP_PROJECT,
+      OT_GCP_ZONE           = var.OT_GCP_ZONE,
+      OT_GCP_NETWORK        = var.OT_GCP_NETWORK,
+      OT_GCP_CLOUD_DNS_ZONE = var.OT_GCP_CLOUD_DNS_ZONE,
+    }),
+    config-watcher-script  = file("config-watcher.sh"),
+    config-watcher-service = file("config-watcher.service"),
   }
   metadata_startup_script = file("google-startup-script.sh")
+
+  lifecycle {
+    ignore_changes = [
+      labels["author"]
+    ]
+  }
+
+  depends_on = [google_compute_disk.clickhouse_data_volume, google_compute_disk.opensearch_data_volume]
 }
 
 // DNS RECORD SETS

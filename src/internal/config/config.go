@@ -2,164 +2,93 @@
 package config
 
 import (
-	"log"
-	"math/rand"
-	"path/filepath"
+	"fmt"
+	"os"
+	"strings"
 
-	"github.com/joho/godotenv"
+	"github.com/charmbracelet/huh"
+	"github.com/opentargets/platform-deployment-standalone/internal/tools"
 )
 
-// CloudDeploymentMaxDaysToLive is the maximum number of days a cloud deployment can live.
-const CloudDeploymentMaxDaysToLive = 14
+// DeploymentConfig is an interface that represents the configuration for a deployment.
+type DeploymentConfig interface {
+	// GetDeploymentDir returns the directory where the deployment files are stored.
+	GetDeploymentDir() string
+	// Validate validates all settings in the deployment configuration.
+	Validate() error
+	// ReplaceFromEnv replaces the values of the deployment configuration from environment variables.
+	ReplaceFromEnv()
+	// ToString returns a string representation of the deployment configuration.
+	ToString() string
+	// GetSecretFields returns a slice of Settings that are secrets.
+	GetSecretFields() []Setting
+}
 
-// Location represents the deployment location.
-type Location string
-
-const (
-	// Local represents a deployment that is hosted in the machine.
-	Local Location = "local"
-	// Cloud represents a deployment that is hosted in the cloud.
-	Cloud Location = "cloud"
-)
-
-// Setting represents a configuration setting with its environment variable and value.
+// Setting represents a configuration setting.
 type Setting struct {
-	// Env is the environment variable that holds the value.
-	Env string
-	// Value is the value of the setting.
-	Value string
-	// Secret indicates if the setting is sensitive and should not be logged.
-	Secret bool
-	// SecretFile is the file where the secret value is stored.
-	SecretFile string
+	Title          string
+	Description    string
+	Env            string
+	Value          string
+	Secret         bool
+	SecretFilename string
+	Validator      func(value string) error
+	ValidatedValue string
 }
 
-// Config holds the configuration for the deployment.
-type Config struct {
-	// Deployment Type form group.
-	// Location is the type of deployment, either local or cloud.
-	Location Setting
-
-	// Data and software versions form group.
-	// Release is the version of Open Targets to deploy (e.g., "25.06"). Local-exclusive.
-	Release Setting
-	// ReleaseURL is the base URL (root path) of the release. Local-exclusive.
-	ReleaseURL Setting
-	// SnapshotOS is the name of the snapshot for the OpenSearch disk. Cloud-exclusive.
-	SnapshotOS Setting
-	// SnapshotCH is the name of the snapshot for the ClickHouse disk. Cloud-exclusive.
-	SnapshotCH Setting
-	// Flavor is the deployment flavor, either platform or ppp. Cloud-exclusive.
-	Flavor Setting
-	// APIImage is the name of the Docker image for the API.
-	APIImage Setting
-	// APITag is the tag of the Docker image for the API.
-	APITag Setting
-	// APIOpenAIImage is the name of the Docker image for the OpenAI API.
-	APIOpenAIImage Setting
-	// APIOpenAITag is the tag of the Docker image for the OpenAI API. Local-exclusive.
-	APIOpenAITag Setting
-	// APIOpenAIToken is the token for OpenAI API access.
-	APIOpenAIToken Setting
-	// WebAppImage is the name of the Docker image for the WebApp.
-	WebAppImage Setting
-	// WebAppTag is the tag of the Docker image for the WebApp.
-	WebAppTag Setting
-	// OpensearchTag is the tag of the Docker image for OpenSearch.
-	OpensearchTag Setting
-	// ClickHouseTag is the tag of the Docker image for ClickHouse.
-	ClickhouseTag Setting
-
-	// Cloud Deployment Settings form group.
-	// DomainName is the domain name for the cloud deployment.
-	DomainName Setting
-	// SubdomainName is the subdomain name for the cloud deployment.
-	SubdomainName Setting
-	// DaysToLive is the time to live for the deployment, in days.
-	DaysToLive Setting
-	// GCPSecretOpenAIToken is the Google Cloud Platform secret name for the OpenAI API token.
-	GCPSecretOpenAIToken Setting
-	// GCPProject is the Google Cloud Platform project name for cloud deployments.
-	GCPProject Setting
-	// GCPRegion is the Google Cloud Platform region for cloud deployments.
-	GCPRegion Setting
-	// GCPZone is the Google Cloud Platform zone for cloud deployments.
-	GCPZone Setting
-	// GCPCloudDNSZone is the Cloud DNS zone for the deployment.
-	GCPCloudDNSZone Setting
-	// GCPNetwork is the Google Cloud Platform network name for the deployment.
-	GCPNetwork Setting
-	// GCPServiceAccount is the Google Cloud Platform service account used.
-	GCPServiceAccount Setting
-
-	// Settings that are not shown in the form.
-	// DeploymentFolder is the folder where the deployment files are stored.
-	DeploymentFolder Setting
-}
-
-func randomString(length int) string {
-	letters := []rune("abcdefgh")
-	randomString := make([]rune, length)
-
-	for i := range randomString {
-		randomString[i] = letters[rand.Intn(len(letters))]
+// Validate checks the value of the Setting using the provided validator function.
+func (s *Setting) Validate() error {
+	if s.Validator == nil {
+		return nil
 	}
-
-	return string(randomString)
-}
-
-// New creates a new Config instance from env vars loaded from a file.
-func New(configFilePath string) Config {
-	env, err := godotenv.Read(configFilePath)
+	err := s.ValidateWithSpinner()(s.Value)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("invalid %s: %w", strings.ToLower(s.Title), err)
 	}
+	return nil
+}
 
-	return Config{
-		Location:             Setting{Env: "OT_DEPLOYMENT_LOCATION", Value: env["OT_DEPLOYMENT_LOCATION"]},
-		Release:              Setting{Env: "OT_RELEASE", Value: env["OT_RELEASE"]},
-		SnapshotCH:           Setting{Env: "TF_VAR_OT_SNAPSHOT_CH", Value: env["TF_VAR_OT_SNAPSHOT_CH"]},
-		SnapshotOS:           Setting{Env: "TF_VAR_OT_SNAPSHOT_OS", Value: env["TF_VAR_OT_SNAPSHOT_OS"]},
-		Flavor:               Setting{Env: "OT_FLAVOR", Value: env["OT_WEBAPP_FLAVOR"]},
-		APIImage:             Setting{Env: "OT_API_IMAGE", Value: env["OT_API_IMAGE"]},
-		APITag:               Setting{Env: "OT_API_TAG", Value: env["OT_API_TAG"]},
-		APIOpenAIImage:       Setting{Env: "OT_API_OPENAI_IMAGE", Value: env["OT_API_OPENAI_IMAGE"]},
-		APIOpenAITag:         Setting{Env: "OT_API_OPENAI_TAG", Value: env["OT_API_OPENAI_TAG"]},
-		WebAppImage:          Setting{Env: "OT_WEBAPP_IMAGE", Value: env["OT_WEBAPP_IMAGE"]},
-		WebAppTag:            Setting{Env: "OT_WEBAPP_TAG", Value: env["OT_WEBAPP_TAG"]},
-		OpensearchTag:        Setting{Env: "OT_OPENSEARCH_TAG", Value: env["OT_OPENSEARCH_TAG"]},
-		ClickhouseTag:        Setting{Env: "OT_CLICKHOUSE_TAG", Value: env["OT_CLICKHOUSE_TAG"]},
-		ReleaseURL:           Setting{Env: "OT_RELEASE_URL", Value: env["OT_RELEASE_URL"]},
-		APIOpenAIToken:       Setting{Env: "OT_API_OPENAI_TOKEN", Value: "", Secret: true, SecretFile: "openai_token"},
-		DomainName:           Setting{Env: "TF_VAR_OT_DOMAIN_NAME", Value: env["TF_VAR_OT_DOMAIN_NAME"]},
-		SubdomainName:        Setting{Env: "TF_VAR_OT_SUBDOMAIN_NAME", Value: randomString(4)},
-		DaysToLive:           Setting{Env: "TF_VAR_OT_DAYS_TO_LIVE", Value: env["TF_VAR_OT_DAYS_TO_LIVE"]},
-		GCPSecretOpenAIToken: Setting{Env: "TF_VAR_OT_GCP_SECRET_OPENAI_TOKEN", Value: env["TF_VAR_OT_GCP_SECRET_OPENAI_TOKEN"]},
-		GCPProject:           Setting{Env: "TF_VAR_OT_GCP_PROJECT", Value: env["TF_VAR_OT_GCP_PROJECT"]},
-		GCPRegion:            Setting{Env: "TF_VAR_OT_GCP_REGION", Value: env["TF_VAR_OT_GCP_REGION"]},
-		GCPZone:              Setting{Env: "TF_VAR_OT_GCP_ZONE", Value: env["TF_VAR_OT_GCP_ZONE"]},
-		GCPCloudDNSZone:      Setting{Env: "TF_VAR_OT_GCP_CLOUD_DNS_ZONE", Value: env["TF_VAR_OT_GCP_CLOUD_DNS_ZONE"]},
-		GCPNetwork:           Setting{Env: "TF_VAR_OT_GCP_NETWORK", Value: env["TF_VAR_OT_GCP_NETWORK"]},
-		GCPServiceAccount:    Setting{Env: "TF_VAR_OT_GCP_SA", Value: env["TF_VAR_OT_GCP_SA"]},
+// ReplaceFromEnv sets the value of the Setting from the environment.
+func (s *Setting) ReplaceFromEnv() {
+	if newValue, exists := os.LookupEnv(s.Env); exists {
+		s.Value = newValue
 	}
 }
 
-// SetDeploymentFolder sets the deployment folder based on the release and subdomain name.
-func (c *Config) SetDeploymentFolder() {
-	var deploymentFolder string
-	if c.Location.Value == string(Local) {
-		deploymentFolder = "deployment-local-" + c.Release.Value
-	} else if c.Location.Value == string(Cloud) {
-		deploymentFolder = "deployment-cloud-" + c.Release.Value + "-" + c.SubdomainName.Value
+// ToString returns a string representation of the Setting.
+func (s *Setting) ToString() string {
+	if s.Secret {
+		return fmt.Sprintf("# %s is a secret located at ./%s\n", s.Env, s.SecretFilename)
 	}
+	return fmt.Sprintf("%s=\"%s\"\n", s.Env, s.Value)
+}
 
-	deploymentFolder, err := filepath.Abs(deploymentFolder)
-	if err != nil {
-		log.Fatal(err)
+// ValidateWithSpinner returns a validation function that uses a spinner to indicate progress.
+func (s *Setting) ValidateWithSpinner() func(v string) error {
+	return func(v string) error {
+		if s.ValidatedValue == v || s.Validator == nil {
+			return nil
+		}
+		var err error
+		a := func() {
+			err = s.Validator(v)
+			if err == nil {
+				s.ValidatedValue = v
+			}
+		}
+		tools.RunWithSpinner(fmt.Sprintf("checking %s", strings.ToLower(s.Title)), a)
+		if err != nil {
+			return fmt.Errorf("invalid %s: %w", strings.ToLower(s.Title), err)
+		}
+		return nil
 	}
+}
 
-	c.DeploymentFolder = Setting{
-		Env:   "OT_DEPLOYMENT_FOLDER",
-		Value: deploymentFolder,
-	}
+// Input creates a new input for the Setting using the huh package.
+func (s *Setting) Input() *huh.Input {
+	return huh.NewInput().
+		Title(s.Title).
+		Description(s.Description).
+		Value(&s.Value).
+		Validate(s.ValidateWithSpinner())
 }
