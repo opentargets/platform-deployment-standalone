@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# delete firewall rule if deployment was regular platform (ppp deployments have persistent rules)
+if [ "${OT_GCP_NETWORK}" == "default" ]; then
+  gcloud compute firewall-rules delete "devinstance-allow-${OT_SUBDOMAIN_NAME}" \
+    --project="${OT_GCP_PROJECT}" \
+    --quiet
+fi
+
+# delete dns record
+gcloud dns record-sets delete "${OT_SUBDOMAIN_NAME}.${OT_DOMAIN_NAME}." \
+  --type=A \
+  --zone="${OT_GCP_CLOUD_DNS_ZONE}" \
+  --project="${OT_GCP_PROJECT}" \
+  --quiet
+
+# stop containers
+docker compose down
+
+# delete disks
+umount /platform/clickhouse
+umount /platform/opensearch
+
+gcloud compute instances detach-disk "devinstance-${OT_SUBDOMAIN_NAME}" \
+  --disk="devinstance-datavolume-ch-${OT_SUBDOMAIN_NAME}" \
+  --zone="${OT_GCP_ZONE}" \
+  --project="${OT_GCP_PROJECT}" \
+  --quiet
+
+gcloud compute disks delete "devinstance-datavolume-ch-${OT_SUBDOMAIN_NAME}" \
+  --zone="${OT_GCP_ZONE}" \
+  --project="${OT_GCP_PROJECT}" \
+  --quiet
+
+gcloud compute instances detach-disk "devinstance-${OT_SUBDOMAIN_NAME}" \
+  --disk="devinstance-datavolume-os-${OT_SUBDOMAIN_NAME}" \
+  --zone="${OT_GCP_ZONE}" \
+  --project="${OT_GCP_PROJECT}" \
+  --quiet
+
+gcloud compute disks delete "devinstance-datavolume-os-${OT_SUBDOMAIN_NAME}" \
+  --zone="${OT_GCP_ZONE}" \
+  --project="${OT_GCP_PROJECT}" \
+  --quiet
+
+# delete instance
+gcloud compute instances delete "devinstance-${OT_SUBDOMAIN_NAME}" \
+  --zone="${OT_GCP_ZONE}" \
+  --project="${OT_GCP_PROJECT}" \
+  --quiet

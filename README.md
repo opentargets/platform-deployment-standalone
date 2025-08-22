@@ -22,8 +22,27 @@ Regarding software, you will need:
 
 ## Usage
 
-Run `make` to create a deployment. The configurator will request all the details
-it needs.
+```
+Open Targets Platform deployment tool allows you to create a deployment
+either in a local environment or in the cloud.
+
+Usage:
+  ./platform [command]
+
+Main commands
+  deploy      Create a deployment
+  destroy     Destroy a deployment
+  list        List cloud deployments
+
+Additional Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+
+Flags:
+  -h, --help   help for ./platform
+
+Use "./platform [command] --help" for more information about a command.
+```
 
 ## Cloud deployments
 
@@ -44,6 +63,8 @@ Service Account with the following roles:
 * `roles/compute.storageAdmin` to delete the disks holding the data
 * `roles/compute.securityAdmin` to delete firewall rules that allow access to
 the API and AI API
+* `roles/compute.viewer` to watch operations related to disk destruction on
+cleanup
 * `roles/compute.networkAdmin` to allow modifying the network to delete firewall
 rules
 * `roles/dns.admin` to add and remove record sets for the deployment hostname and
@@ -68,6 +89,11 @@ gcloud projects add-iam-policy-binding $project \
 	--member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
 	--role="roles/compute.storageAdmin" \
 	--condition='expression=resource.name.startsWith("projects/'$project'/zones/europe-west1-d/disks/devinstance-"),title="Limited to devinstance disks"'
+
+gcloud projects add-iam-policy-binding $project \
+	--member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
+	--role="roles/compute.viewer" \
+	--condition='expression=resource.name.startsWith("projects/'$project'/zones/europe-west1-d/operations/operation-"),title="Limited to operations viewing"'
 
 gcloud projects add-iam-policy-binding $project \
 	--member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \

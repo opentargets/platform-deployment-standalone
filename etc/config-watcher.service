@@ -1,0 +1,14 @@
+[Unit]
+Description=Config Watcher
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=60
+WorkingDirectory=/platform
+ExecStart=/platform/config-watcher.sh
+
+[Install]
+WantedBy=multi-user.target

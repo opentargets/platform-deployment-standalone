@@ -28,31 +28,26 @@ curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadat
 curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/dockerfile-opensearch > /platform/Dockerfile-opensearch
 curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/config > /platform/config
 curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/nginx-conf > /etc/nginx/sites-enabled/default
+curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/cleanup > /platform/cleanup.sh
+curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/config-watcher-script > /platform/config-watcher.sh
+curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/config-watcher-service > /etc/systemd/system/config-watcher.service
 set -a
-# shellcheck source=defaults
+# shellcheck source=/dev/null
 source /platform/config
 set +a
-
-# set auto-delete for disks manually because terraform does not let us
-gcloud config set project $TF_VAR_OT_GCP_PROJECT
-gcloud compute instances set-disk-auto-delete "devinstance-$TF_VAR_OT_SUBDOMAIN_NAME" --auto-delete --disk="devinstance-datavolume-os-$TF_VAR_OT_SUBDOMAIN_NAME" --zone="$TF_VAR_OT_GCP_ZONE"
-gcloud compute instances set-disk-auto-delete "devinstance-$TF_VAR_OT_SUBDOMAIN_NAME" --auto-delete --disk="devinstance-datavolume-ch-$TF_VAR_OT_SUBDOMAIN_NAME" --zone="$TF_VAR_OT_GCP_ZONE"
+# prepare frontend env vars
+export OT_WEBAPP_API_URL="https://$TF_VAR_OT_SUBDOMAIN_NAME.$TF_VAR_OT_DOMAIN_NAME/api/v4/graphql"
+export OT_WEBAPP_OPENAI_URL="https://$TF_VAR_OT_SUBDOMAIN_NAME.$TF_VAR_OT_DOMAIN_NAME"
 
 # prepare secrets
 gcloud secrets versions access latest --secret="$TF_VAR_OT_GCP_SECRET_AI_TOKEN" > /platform/openai_token
 chmod 600 /platform/openai_token
 
 # schedule cleanup script
-cat > /platform/cleanup.sh <<-CLEANUP_EOF
-  if [ "$TF_VAR_OT_GCP_NETWORK" == "default" ]; then
-    gcloud compute firewall-rules delete "devinstance-allow-$TF_VAR_OT_SUBDOMAIN_NAME" --project="$TF_VAR_OT_GCP_PROJECT" --quiet
-  fi
-  gcloud dns record-sets delete "$TF_VAR_OT_SUBDOMAIN_NAME.$TF_VAR_OT_DOMAIN_NAME." --type=A --zone="$TF_VAR_OT_GCP_CLOUD_DNS_ZONE" --project="$TF_VAR_OT_GCP_PROJECT" --quiet
-  gcloud compute instances delete "devinstance-$TF_VAR_OT_SUBDOMAIN_NAME" --zone="$TF_VAR_OT_GCP_ZONE" --project="$TF_VAR_OT_GCP_PROJECT" --quiet
-CLEANUP_EOF
+
 chmod +x /platform/cleanup.sh
-if [ $TF_VAR_OT_DAYS_TO_LIVE -ne 0 ]; then
-  echo "/usr/bin/bash /platform/cleanup.sh" | at now + $TF_VAR_OT_DAYS_TO_LIVE days
+if [ "$TF_VAR_OT_DAYS_TO_LIVE" -ne 0 ]; then
+  echo "/usr/bin/bash /platform/cleanup.sh" | at now + "$TF_VAR_OT_DAYS_TO_LIVE" days
 fi
 
 # prepare cert
@@ -66,10 +61,8 @@ certbot certonly \
 # restart nginx
 nginx -s reload
 
-# run platform
-export OT_API_URL="https://$TF_VAR_OT_SUBDOMAIN_NAME.$TF_VAR_OT_DOMAIN_NAME"
-export OT_API_AI_URL="https://$TF_VAR_OT_SUBDOMAIN_NAME.$TF_VAR_OT_DOMAIN_NAME"
-export OT_DEPLOYMENT_FOLDER="/platform"
-export OT_WEBAPP_FLAVOR="$OT_WEBAPP_FLAVOR"
+# run platform and the config watcher
 cd /platform || exit 1
-docker compose -f compose.yaml up -d
+docker compose -f compose.yaml up --quiet-build --quiet-pull -d
+chmod +x /platform/config-watcher.sh
+systemctl enable --now config-watcher

@@ -1,6 +1,3 @@
 downloads
 deployment-*
-
-bin/configure
-bin/config
-bin/openai_token
+platform
