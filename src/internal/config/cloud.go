@@ -39,6 +39,7 @@ type CloudDeploymentConfig struct {
 	GCPCloudDNSZone   Setting
 	GCPNetwork        Setting
 	GCPServiceAccount Setting
+	APICache          Setting
 }
 
 // NewCloudDeploymentConfig creates a new CloudDeploymentConfig with defaults.
@@ -181,7 +182,7 @@ func NewCloudDeploymentConfig(configPath string) (*CloudDeploymentConfig, error)
 			Validator: ValidateNotEmpty,
 		},
 
-		// Fifth form: Additional GCP settings
+		// Fifth form: Additional settings
 		GCPSecretAIToken: Setting{
 			Title:       "GCP AI API token secret",
 			Description: "The Google Cloud Secret Manager secret that contains the API token to use inside the AI API for the publication summarization feature.",
@@ -203,6 +204,12 @@ func NewCloudDeploymentConfig(configPath string) (*CloudDeploymentConfig, error)
 			Description: "Input in email form, e.g. `service-account@project.iam.gserviceaccount.com`.",
 			Env:         "TF_VAR_OT_GCP_SA",
 			Value:       env["TF_VAR_OT_GCP_SA"],
+		},
+		APICache: Setting{
+			Title:       "API cache",
+			Description: "Whether the API should use caching (recommended) or not. Disable for development purposes.",
+			Env:         "PLATFORM_API_IGNORE_CACHE",
+			Value:       tools.Either(env["PLATFORM_API_IGNORE_CACHE"], "false"),
 		},
 	}
 
@@ -285,6 +292,7 @@ func (c *CloudDeploymentConfig) ReplaceFromEnv() {
 	c.GCPCloudDNSZone.ReplaceFromEnv()
 	c.GCPNetwork.ReplaceFromEnv()
 	c.GCPServiceAccount.ReplaceFromEnv()
+	c.APICache.ReplaceFromEnv()
 }
 
 // ToString returns a string representation of the CloudDeploymentConfig.
@@ -292,20 +300,20 @@ func (c *CloudDeploymentConfig) ToString() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("# Open Targets cloud deployment config for https://%s.%s\n", c.SubdomainName.Value, c.DomainName.Value))
 	sb.WriteString(c.DeploymentType.ToString())
-	sb.WriteString("\n# GCP Global Settings\n")
+	sb.WriteString("\n# GCP global settings\n")
 	sb.WriteString(c.GCPProject.ToString())
 	sb.WriteString(c.GCPRegion.ToString())
 	sb.WriteString(c.GCPZone.ToString())
 	sb.WriteString(c.OpsURI.ToString())
-	sb.WriteString("\n# Deployment Settings\n")
+	sb.WriteString("\n# Deployment settings\n")
 	sb.WriteString(c.DomainName.ToString())
 	sb.WriteString(c.SubdomainName.ToString())
 	sb.WriteString(c.DaysToLive.ToString())
 	sb.WriteString(c.WebAppFlavor.ToString())
-	sb.WriteString("\n# Data Snapshots\n")
+	sb.WriteString("\n# Data snapshots\n")
 	sb.WriteString(c.SnapshotCH.ToString())
 	sb.WriteString(c.SnapshotOS.ToString())
-	sb.WriteString("\n# Software Versions\n")
+	sb.WriteString("\n# Software versions\n")
 	sb.WriteString(c.APIImage.ToString())
 	sb.WriteString(c.APITag.ToString())
 	sb.WriteString(c.APIAIImage.ToString())
@@ -314,11 +322,12 @@ func (c *CloudDeploymentConfig) ToString() string {
 	sb.WriteString(c.WebAppTag.ToString())
 	sb.WriteString(c.ClickhouseTag.ToString())
 	sb.WriteString(c.OpensearchTag.ToString())
-	sb.WriteString("\n# Additional GCP Settings\n")
+	sb.WriteString("\n# Additional settings\n")
 	sb.WriteString(c.GCPSecretAIToken.ToString())
 	sb.WriteString(c.GCPCloudDNSZone.ToString())
 	sb.WriteString(c.GCPNetwork.ToString())
 	sb.WriteString(c.GCPServiceAccount.ToString())
+	sb.WriteString(c.APICache.ToString())
 	return sb.String()
 }
 
@@ -337,19 +346,27 @@ func CloudDeploymentForm(c *CloudDeploymentConfig) *huh.Form {
 			c.GCPZone.Input(),
 			c.OpsURI.Input(),
 		).
-			Title("GCP Global Settings"),
+			Title("GCP global settings"),
 		huh.NewGroup(
 			c.DomainName.Input(),
 			c.SubdomainName.Input(),
 			c.DaysToLive.Input(),
-			c.WebAppFlavor.Input(),
+			huh.NewSelect[string]().
+				Options(
+					huh.Option[string]{Value: "platform", Key: "platform"},
+					huh.Option[string]{Value: "ppp", Key: "ppp"},
+				).
+				Title(c.WebAppFlavor.Title).
+				Description(c.WebAppFlavor.Description).
+				Value(&c.WebAppFlavor.Value).
+				Validate(c.WebAppFlavor.Validator),
 		).
-			Title("Deployment Settings"),
+			Title("Deployment settings"),
 		huh.NewGroup(
 			c.SnapshotCH.Input(),
 			c.SnapshotOS.Input(),
 		).
-			Title("Data Snapshots"),
+			Title("Data snapshots"),
 		huh.NewGroup(
 			c.APIImage.Input(),
 			c.APITag.Input(),
@@ -360,13 +377,22 @@ func CloudDeploymentForm(c *CloudDeploymentConfig) *huh.Form {
 			c.ClickhouseTag.Input(),
 			c.OpensearchTag.Input(),
 		).
-			Title("Software Versions"),
+			Title("Software versions"),
 		huh.NewGroup(
 			c.GCPSecretAIToken.Input(),
 			c.GCPCloudDNSZone.Input(),
 			c.GCPNetwork.Input(),
 			c.GCPServiceAccount.Input(),
+			huh.NewSelect[string]().
+				Options(
+					// PLATFORM_API_IGNORE_CACHE=true means cache is disabled
+					huh.Option[string]{Value: "false", Key: "yes"},
+					huh.Option[string]{Value: "true", Key: "no"},
+				).
+				Title(c.APICache.Title).
+				Description(c.APICache.Description).
+				Value(&c.APICache.Value),
 		).
-			Title("Additional GCP Settings"),
+			Title("Additional settings"),
 	)
 }

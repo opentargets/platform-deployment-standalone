@@ -17,3 +17,4 @@ OT_OPENSEARCH_TAG="3.1.0"
 
 # Additional settings
 OT_API_AI_TOKEN=""
+PLATFORM_API_IGNORE_CACHE="false"

@@ -97,7 +97,7 @@ func ListCloud(backend string) {
 	}
 
 	for _, f := range files {
-		if !strings.HasSuffix(f, ".tfstate") {
+		if !strings.Contains(f, ".") {
 			configFilename := fmt.Sprintf("%s/%s", backend, f)
 
 			var url, status string

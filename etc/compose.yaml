@@ -43,6 +43,7 @@ services:
     environment:
       SLICK_CLICKHOUSE_URL: "jdbc:clickhouse://clickhouse:8123"
       ELASTICSEARCH_HOST: "opensearch"
+      PLATFORM_API_IGNORE_CACHE: "${PLATFORM_API_IGNORE_CACHE:-false}"
     ports:
       - 8081:8080
     depends_on:
