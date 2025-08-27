@@ -18,7 +18,11 @@ Regarding software, you will need:
 * [Go](https://go.dev/doc/install), to compile the configurator
 * [Docker](https://docs.docker.com/engine/install/), for local deployments
 * [GCloud CLI](https://cloud.google.com/sdk/docs/install), and
-* [Terraform](https://developer.hashicorp.com/terraform/install) for cloud deployments
+* [Terraform](https://developer.hashicorp.com/terraform/install) for cloud deployments (this can be installed automatically by the tool)
+
+## Build
+
+Just run `make`.
 
 ## Usage
 
@@ -42,6 +46,12 @@ Flags:
   -h, --help   help for ./platform
 
 Use "./platform [command] --help" for more information about a command.
+```
+
+You can generate shell completions by running one of these three options:
+
+```bash
+$ source <(./platform completion {bash,fish,zsh})
 ```
 
 ## Cloud deployments

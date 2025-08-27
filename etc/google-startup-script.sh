@@ -44,7 +44,6 @@ gcloud secrets versions access latest --secret="$TF_VAR_OT_GCP_SECRET_AI_TOKEN" 
 chmod 600 /platform/openai_token
 
 # schedule cleanup script
-
 chmod +x /platform/cleanup.sh
 if [ "$TF_VAR_OT_DAYS_TO_LIVE" -ne 0 ]; then
   echo "/usr/bin/bash /platform/cleanup.sh" | at now + "$TF_VAR_OT_DAYS_TO_LIVE" days
