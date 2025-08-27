@@ -27,6 +27,7 @@ type LocalDeploymentConfig struct {
 	Release        Setting
 	ReleaseURL     Setting
 	APIAIToken     Setting
+	APICache       Setting
 }
 
 // NewLocalDeploymentConfig creates a new LocalDeploymentConfig from a configuration file.
@@ -128,6 +129,12 @@ func NewLocalDeploymentConfig(configPath string) (*LocalDeploymentConfig, error)
 			Secret:         true,
 			SecretFilename: "openai_token",
 		},
+		APICache: Setting{
+			Title:       "API cache",
+			Description: "Disable cache for development or benchmarking purposes",
+			Env:         "PLATFORM_API_IGNORE_CACHE",
+			Value:       tools.Either(env["PLATFORM_API_IGNORE_CACHE"], "true"),
+		},
 	}
 
 	config.APITag.Validator = ValidateVersionTag(func() string { return config.APIImage.Value })
@@ -180,6 +187,7 @@ func (c *LocalDeploymentConfig) ReplaceFromEnv() {
 	c.ClickhouseTag.ReplaceFromEnv()
 	c.OpensearchTag.ReplaceFromEnv()
 	c.APIAIToken.ReplaceFromEnv()
+	c.APICache.ReplaceFromEnv()
 }
 
 // ToString returns a string representation of the LocalDeploymentConfig.
@@ -201,6 +209,7 @@ func (c *LocalDeploymentConfig) ToString() string {
 	sb.WriteString(c.OpensearchTag.ToString())
 	sb.WriteString("\n# Additional settings\n")
 	sb.WriteString(c.APIAIToken.ToString())
+	sb.WriteString(c.APICache.ToString())
 	return sb.String()
 }
 
@@ -233,6 +242,15 @@ func LocalDeploymentForm(c *LocalDeploymentConfig) *huh.Form {
 			Title("Software versions"),
 		huh.NewGroup(
 			c.APIAIToken.Input(),
+			huh.NewSelect[string]().
+				Options(
+					// PLATFORM_API_IGNORE_CACHE=true means cache is disabled
+					huh.Option[string]{Value: "false", Key: "yes"},
+					huh.Option[string]{Value: "true", Key: "no"},
+				).
+				Title(c.APICache.Title).
+				Description(c.APICache.Description).
+				Value(&c.APICache.Value),
 		).
 			Title("Additional settings"),
 	)
