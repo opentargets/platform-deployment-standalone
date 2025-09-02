@@ -67,7 +67,7 @@ resource "google_compute_instance" "dev_vm" {
     initialize_params {
       image = "debian-cloud/debian-12"
       type  = "pd-ssd"
-      size  = "10"
+      size  = "20"
     }
   }
   attached_disk {
