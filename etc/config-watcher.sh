@@ -21,6 +21,7 @@ while true; do
     chown -R 1000:1000 /platform/opensearch
 
     docker compose -f /platform/compose.yaml up --quiet-build --quiet-pull --build --force-recreate -d
+    docker image prune -af
   else
     echo .
   fi
