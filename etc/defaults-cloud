@@ -31,7 +31,7 @@ OT_OPENSEARCH_TAG="3.1.0"
 # Addtional settings
 TF_VAR_OT_GCP_SECRET_AI_TOKEN="openai-token"
 TF_VAR_OT_GCP_CLOUD_DNS_ZONE="opentargets-xyz"
-TF_VAR_OT_GCP_NETWORK="default"
+TF_VAR_OT_GCP_NETWORK="devinstance"
 TF_VAR_OT_GCP_SA="devinstance-manager@open-targets-eu-dev.iam.gserviceaccount.com"
 TF_VAR_BACKEND_BUCKET="open-targets-ops"
 TF_VAR_BACKEND_PREFIX="terraform/devinstance"

@@ -81,7 +81,9 @@ resource "google_compute_instance" "dev_vm" {
     device_name = "datavolume-ch"
   }
   network_interface {
-    network = var.OT_GCP_NETWORK
+    network            = var.OT_GCP_NETWORK
+    subnetwork         = var.OT_GCP_NETWORK
+    subnetwork_project = var.OT_GCP_PROJECT
     access_config {}
   }
   service_account {

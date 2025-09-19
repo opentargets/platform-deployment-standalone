@@ -118,12 +118,15 @@ gcloud projects add-iam-policy-binding $project \
 gcloud projects add-iam-policy-binding $project \
   --member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
   --role="roles/compute.networkAdmin" \
-  --condition='expression=resource.name=="projects/'$project'/global/networks/default",title="Limited to default network"'
+  --condition='expression=resource.name=="projects/'$project'/global/networks/devinstance",title="Limited to devinstance network"'
 
 gcloud projects add-iam-policy-binding $project \
 	--member="serviceAccount:$service_account_name@$project.iam.gserviceaccount.com" \
 	--role="roles/dns.admin"
 ```
+
+The deployment uses a VPC called `devinstance` with a `devinstance` subnetwork
+in the region that is used for the rest of resources.
 
 You also need a secret named `openai_token`, which holds your OpenAI API Token,
 used for the literature summarization feature. This is optional, but it must be
@@ -131,6 +134,8 @@ set to an empty string or the deployment will fail.
 
 It is required to edit the `etc/default.tfbackend` file and change the `bucket`
 and `prefix` values inside to ones you own.
+
+A terraform file to set this all up will be provided!
 
 
 # Copyright
