@@ -20,6 +20,7 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"cloud.google.com/go/storage"
 	"github.com/docker/docker/client"
+	"github.com/opentargets/platform-deployment-standalone/internal/tools"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -78,7 +79,7 @@ func ValidateImageName(v string) error {
 		return err
 	}
 
-	client, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	client, err := tools.GetDockerClient()
 	if err != nil {
 		return err
 	}
