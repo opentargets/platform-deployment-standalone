@@ -13,7 +13,8 @@ TF_VAR_OT_SUBDOMAIN_NAME="" # leave default empty so it is generated randomly by
 TF_VAR_OT_DAYS_TO_LIVE="2"
 OT_WEBAPP_FLAVOR="platform"
 
-# Data snapshots
+# Data versions
+OT_RELEASE="25.09"
 TF_VAR_OT_SNAPSHOT_CH="platform-2509-ch"
 TF_VAR_OT_SNAPSHOT_OS="platform-2509-os"
 

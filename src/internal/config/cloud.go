@@ -29,6 +29,7 @@ type CloudDeploymentConfig struct {
 	SnapshotOS        Setting
 	APIImage          Setting
 	APITag            Setting
+	Release           Setting
 	APIAIImage        Setting
 	APIAITag          Setting
 	WebAppImage       Setting
@@ -120,7 +121,14 @@ func NewCloudDeploymentConfig(configPath string) (*CloudDeploymentConfig, error)
 			Validator:   ValidateWebAppFlavor,
 		},
 
-		// Third form: Data snapshots
+		// Third form: Data versions
+		Release: Setting{
+			Title:       "Data release",
+			Description: "The data release version, YY.MM. The API needs awareness of this to construct database namespace/index prefixes, e.g., `25.06`.",
+			Env:         "OT_RELEASE",
+			Value:       env["OT_RELEASE"],
+			Validator:   ValidateRelease,
+		},
 		SnapshotCH: Setting{
 			Title: "ClickHouse data snapshot",
 			Env:   "TF_VAR_OT_SNAPSHOT_CH",
@@ -248,6 +256,7 @@ func (c *CloudDeploymentConfig) Validate() error {
 	tools.AppendIfErr(&errs, c.SubdomainName.Validate())
 	tools.AppendIfErr(&errs, c.DaysToLive.Validate())
 	tools.AppendIfErr(&errs, c.WebAppFlavor.Validate())
+	tools.AppendIfErr(&errs, c.Release.Validate())
 	tools.AppendIfErr(&errs, c.SnapshotCH.Validate())
 	tools.AppendIfErr(&errs, c.SnapshotOS.Validate())
 	tools.AppendIfErr(&errs, c.APIImage.Validate())
@@ -278,6 +287,7 @@ func (c *CloudDeploymentConfig) ReplaceFromEnv() {
 	c.SubdomainName.ReplaceFromEnv()
 	c.DaysToLive.ReplaceFromEnv()
 	c.WebAppFlavor.ReplaceFromEnv()
+	c.Release.ReplaceFromEnv()
 	c.SnapshotCH.ReplaceFromEnv()
 	c.SnapshotOS.ReplaceFromEnv()
 	c.APIImage.ReplaceFromEnv()
@@ -310,7 +320,8 @@ func (c *CloudDeploymentConfig) ToString() string {
 	sb.WriteString(c.SubdomainName.ToString())
 	sb.WriteString(c.DaysToLive.ToString())
 	sb.WriteString(c.WebAppFlavor.ToString())
-	sb.WriteString("\n# Data snapshots\n")
+	sb.WriteString("\n# Data versions\n")
+	sb.WriteString(c.Release.ToString())
 	sb.WriteString(c.SnapshotCH.ToString())
 	sb.WriteString(c.SnapshotOS.ToString())
 	sb.WriteString("\n# Software versions\n")
@@ -363,10 +374,11 @@ func CloudDeploymentForm(c *CloudDeploymentConfig) *huh.Form {
 		).
 			Title("Deployment settings"),
 		huh.NewGroup(
+			c.Release.Input(),
 			c.SnapshotCH.Input(),
 			c.SnapshotOS.Input(),
 		).
-			Title("Data snapshots"),
+			Title("Data versions"),
 		huh.NewGroup(
 			c.APIImage.Input(),
 			c.APITag.Input(),

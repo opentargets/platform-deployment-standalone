@@ -44,6 +44,9 @@ services:
       SLICK_CLICKHOUSE_URL: "jdbc:clickhouse://clickhouse:8123"
       ELASTICSEARCH_HOST: "opensearch"
       PLATFORM_API_IGNORE_CACHE: "${PLATFORM_API_IGNORE_CACHE:-false}"
+      META_DATA_RELEASE: "${OT_RELEASE:-25.09}"
+      META_PRODUCT_NAME: "${OT_WEBAPP_FLAVOR:-platform}"
+      META_API_VERSION: "${OT_API_TAG}"
     ports:
       - 8081:8080
     depends_on:
