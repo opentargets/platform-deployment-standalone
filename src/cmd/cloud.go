@@ -78,6 +78,8 @@ func ListCloud(backend string) {
 	ok := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00ff00")).Render("✔")
 	ko := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#ff0000")).Render("✘")
 	em := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#777777")).Render(" — ")
+	po := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#ffffff")).Render("(")
+	pc := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#ffffff")).Render(")")
 
 	files := []string{}
 	statuses := strings.Builder{}
@@ -109,6 +111,7 @@ func ListCloud(backend string) {
 
 			parts := strings.Split(f, "/")
 			name := lipgloss.NewStyle().Width(16).Align(lipgloss.Left).Bold(true).Render(parts[len(parts)-1])
+			configName := lipgloss.NewStyle().Align(lipgloss.Left).Foreground(lipgloss.Color("#777777")).Render(configFilename)
 			url = lipgloss.NewStyle().Align(lipgloss.Left).Foreground(lipgloss.Color("#3366cc")).Render(url)
 
 			if status == "live" {
@@ -124,6 +127,10 @@ func ListCloud(backend string) {
 			} else {
 				statuses.WriteString(status)
 			}
+			statuses.WriteString(em)
+			statuses.WriteString(po)
+			statuses.WriteString(configName)
+			statuses.WriteString(pc)
 			statuses.WriteString("\n")
 		}
 	}

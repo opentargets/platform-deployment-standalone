@@ -2,7 +2,7 @@
 OT_DEPLOYMENT_TYPE="local"
 
 # Data release settings
-OT_RELEASE="25.06"
+OT_RELEASE="25.09"
 OT_RELEASE_URL="https://ftp.ebi.ac.uk/pub/databases/opentargets/platform"
 
 # Software versions

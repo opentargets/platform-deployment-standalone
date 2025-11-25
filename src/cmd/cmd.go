@@ -46,11 +46,16 @@ var listCmd = &cobra.Command{
 	Short: "List cloud deployments",
 	Long: `List cloud deployments of the Open Targets Platform in your Google Cloud project.
 
-This command requires a backend URI as argument, where the deployment state is
-stored.
+This command takes an optional backend URI as argument, where the deployment
+state is stored. If no argument is provided, it will use the default value
+"gs://open-targets-ops/terraform/devinstance".
 `,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
+		defaultGCSPrefix := "gs://open-targets-ops/terraform/devinstance"
+		if len(args) == 0 {
+			args = append(args, defaultGCSPrefix)
+		}
 		ListCloud(args[0])
 	},
 }

@@ -14,8 +14,8 @@ TF_VAR_OT_DAYS_TO_LIVE="2"
 OT_WEBAPP_FLAVOR="platform"
 
 # Data snapshots
-TF_VAR_OT_SNAPSHOT_CH="platform-2506-ch"
-TF_VAR_OT_SNAPSHOT_OS="platform-2506-os"
+TF_VAR_OT_SNAPSHOT_CH="platform-2509-ch"
+TF_VAR_OT_SNAPSHOT_OS="platform-2509-os"
 
 # Software versions
 OT_API_IMAGE="ghcr.io/opentargets/platform-api"
