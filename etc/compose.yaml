@@ -31,7 +31,7 @@ services:
     ports:
       - 127.0.0.1:8123:8123
     volumes:
-      - ./clickhouse/config.d:/etc/clickhouse-server/config.d
+      - /platform/ch-config:/etc/clickhouse-server/config.d/config.xml
       - ./clickhouse/users.d:/etc/clickhouse-server/users.d
       - ./default-user.xml:/etc/clickhouse-server/users.d/default-user.xml
       - ./clickhouse/data:/var/lib/clickhouse
