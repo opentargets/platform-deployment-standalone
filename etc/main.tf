@@ -102,6 +102,7 @@ resource "google_compute_instance" "dev_vm" {
   metadata = {
     compose-file          = file("compose.yaml"),
     dockerfile-opensearch = file("Dockerfile-opensearch"),
+    ch-config             = file("ch-config.xml"),
     config                = file("config"),
     nginx-conf = templatefile("nginx.conf.tftpl", {
       OT_DOMAIN_NAME    = var.OT_DOMAIN_NAME

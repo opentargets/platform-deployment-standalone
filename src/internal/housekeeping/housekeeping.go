@@ -59,6 +59,7 @@ func PrepareDeploymentDir(c config.DeploymentConfig) {
 		"./etc/google-startup-script.sh",
 		"./etc/main.tf",
 		"./etc/nginx.conf.tftpl",
+		"./etc/ch-config.xml",
 	}
 
 	EnsureDir(c.GetDeploymentDir())
