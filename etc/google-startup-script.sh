@@ -31,7 +31,7 @@ curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadat
 curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/cleanup > /platform/cleanup.sh
 curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/config-watcher-script > /platform/config-watcher.sh
 curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/config-watcher-service > /etc/systemd/system/config-watcher.service
-curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/ch-config > /platform/clickhouse/config.d/config.xml
+curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/ch-config > /platform/ch-config.xml
 set -a
 # shellcheck source=/dev/null
 source /platform/config
