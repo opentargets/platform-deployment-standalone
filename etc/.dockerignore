@@ -1,3 +1,4 @@
 opensearch
 clickhouse
 openai_token
+.htpasswd*
