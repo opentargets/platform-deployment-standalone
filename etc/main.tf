@@ -64,10 +64,13 @@ resource "google_compute_disk" "opensearch_data_volume" {
 
 // BASIC AUTH SECRET
 
-resource "google_secret_manager_regional_secret" "webapp_basic_auth" {
+resource "google_secret_manager_secret" "webapp_basic_auth" {
   project   = var.OT_GCP_PROJECT
-  location  = var.OT_GCP_REGION
   secret_id = "${var.OT_SUBDOMAIN_NAME}-htpasswd"
+
+  replication {
+    auto {}
+  }
 
   labels = {
     "team"        = "opentargets"
@@ -79,14 +82,13 @@ resource "google_secret_manager_regional_secret" "webapp_basic_auth" {
   }
 }
 
-resource "google_secret_manager_regional_secret_iam_member" "webapp_basic_auth" {
+resource "google_secret_manager_secret_iam_member" "webapp_basic_auth" {
   project   = var.OT_GCP_PROJECT
-  location  = var.OT_GCP_REGION
-  secret_id = google_secret_manager_regional_secret.webapp_basic_auth.secret_id
+  secret_id = google_secret_manager_secret.webapp_basic_auth.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${var.OT_GCP_SA}"
 
-  depends_on = [google_secret_manager_regional_secret.webapp_basic_auth]
+  depends_on = [google_secret_manager_secret.webapp_basic_auth]
 }
 
 resource "random_password" "webapp_pass" {
@@ -98,8 +100,8 @@ resource "random_password" "webapp_pass" {
   }
 }
 
-resource "google_secret_manager_regional_secret_version" "webapp_pass" {
-  secret = google_secret_manager_regional_secret.webapp_basic_auth.id
+resource "google_secret_manager_secret_version" "webapp_pass" {
+  secret = google_secret_manager_secret.webapp_basic_auth.id
 
   secret_data_wo_version = 1
   secret_data_wo         = "ot_admin:${random_password.webapp_pass.result}"
@@ -175,7 +177,7 @@ resource "google_compute_instance" "dev_vm" {
     ]
   }
 
-  depends_on = [google_compute_disk.clickhouse_data_volume, google_compute_disk.opensearch_data_volume, google_secret_manager_regional_secret_version.webapp_pass]
+  depends_on = [google_compute_disk.clickhouse_data_volume, google_compute_disk.opensearch_data_volume, google_secret_manager_secret_version.webapp_pass]
 }
 
 // DNS RECORD SETS

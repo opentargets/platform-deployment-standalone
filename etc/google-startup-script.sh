@@ -49,7 +49,6 @@ chmod 600 /platform/openai_token
 # the config sourced above.
 gcloud secrets versions access latest \
   --secret="${TF_VAR_OT_SUBDOMAIN_NAME}-htpasswd" \
-  --location="${TF_VAR_OT_GCP_REGION}" \
   > /etc/nginx/.htpasswd
 chmod 640 /etc/nginx/.htpasswd
 chown root:www-data /etc/nginx/.htpasswd
