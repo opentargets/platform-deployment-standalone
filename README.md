@@ -10,7 +10,7 @@ of 25.12 release).
 You can after reduce that amount by about 118GB by deleting the `downloads`
 folder containing the disk image tarballs.
 
-Cloud deployments use a [`n1-standard-4`](https://cloud.google.com/compute/docs/general-purpose-machines#n1_machine_types)
+Cloud deployments use a [`n1-standard-8`](https://cloud.google.com/compute/docs/general-purpose-machines#n1_machine_types)
 machine.
 
 Regarding software, you will need:
