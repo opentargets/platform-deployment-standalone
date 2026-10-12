@@ -62,7 +62,7 @@ resource "google_compute_instance" "dev_vm" {
   name         = "devinstance-${var.OT_SUBDOMAIN_NAME}"
   project      = var.OT_GCP_PROJECT
   zone         = var.OT_GCP_ZONE
-  machine_type = "n1-standard-4"
+  machine_type = "n1-standard-8"
   boot_disk {
     initialize_params {
       image = "debian-cloud/debian-12"
