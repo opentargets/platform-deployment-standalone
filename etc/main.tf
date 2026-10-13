@@ -104,7 +104,7 @@ resource "google_secret_manager_secret_version" "webapp_pass" {
   secret = google_secret_manager_secret.webapp_basic_auth.id
 
   secret_data_wo_version = 1
-  secret_data_wo         = "ot_admin:${random_password.webapp_pass.result}"
+  secret_data_wo         = random_password.webapp_pass.result
 }
 
 // COMPUTE INSTANCES

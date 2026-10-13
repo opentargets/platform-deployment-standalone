@@ -41,15 +41,13 @@ export OT_WEBAPP_API_URL="https://$TF_VAR_OT_SUBDOMAIN_NAME.$TF_VAR_OT_DOMAIN_NA
 export OT_WEBAPP_OPENAI_URL="https://$TF_VAR_OT_SUBDOMAIN_NAME.$TF_VAR_OT_DOMAIN_NAME"
 
 # prepare secrets
+# fetch openai
 gcloud secrets versions access latest --secret="$TF_VAR_OT_GCP_SECRET_AI_TOKEN" > /platform/openai_token
 chmod 600 /platform/openai_token
-# webapp basic auth: pull the htpasswd file created by Terraform and materialise it
-# for nginx. The secret (${TF_VAR_OT_SUBDOMAIN_NAME}-htpasswd) is a regional Secret
-# Manager secret; its location is taken from $TF_VAR_OT_GCP_REGION which is set in
-# the config sourced above.
-gcloud secrets versions access latest \
-  --secret="${TF_VAR_OT_SUBDOMAIN_NAME}-htpasswd" \
-  > /etc/nginx/.htpasswd
+
+# fetch basic auth secret for nginx
+hashed_passwd=$(openssl passwd -apr1 -salt opentargets "$(gcloud secrets versions access latest --secret="$TF_VAR_OT_SUBDOMAIN_NAME-htpasswd")")
+echo "ot_admin:$hashed_passwd" > /etc/nginx/.htpasswd
 chmod 640 /etc/nginx/.htpasswd
 chown root:www-data /etc/nginx/.htpasswd
 
