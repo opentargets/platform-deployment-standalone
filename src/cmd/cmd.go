@@ -61,6 +61,32 @@ state is stored. If no argument is provided, it will use the default value
 	},
 }
 
+var getPasswordCmd = &cobra.Command{
+	Use:   "get-password <backend-uri>",
+	Short: "Retrieve the password for a deployment using authentication",
+	Long: `Retrieve the password stored in Google Cloud Secret Manager for a
+cloud deployment of the Open Targets Platform that is currently using
+authentication.
+
+The command takes an optional backend URI as argument, where the deployment
+state is stored. If no argument is provided, it will use the default value
+"gs://open-targets-ops/terraform/devinstance".
+
+The command lists all deployments under the backend URI, filters the ones whose
+GraphQL endpoint returns status 401, and prompts them so the user can pick one.
+Once selected, it fetches the corresponding <subdomain>-htpasswd secret from
+GCP Secret Manager and prints its value to stdout.
+`,
+	Args: cobra.MaximumNArgs(1),
+	Run: func(_ *cobra.Command, args []string) {
+		defaultGCSPrefix := "gs://open-targets-ops/terraform/devinstance"
+		if len(args) == 0 {
+			args = append(args, defaultGCSPrefix)
+		}
+		RunGetPassword(args[0])
+	},
+}
+
 var localCmd = &cobra.Command{
 	Use:     "local",
 	Short:   "Create a local deployment",
@@ -136,6 +162,7 @@ specified, the tool will use the defaults values found in
 	deployCmd.GroupID = "main"
 	destroyCmd.GroupID = "main"
 	listCmd.GroupID = "main"
+	getPasswordCmd.GroupID = "main"
 
 	deployCmd.AddGroup(&cobra.Group{
 		ID:    "deploy",
@@ -148,6 +175,7 @@ specified, the tool will use the defaults values found in
 	RootCmd.AddCommand(deployCmd)
 	RootCmd.AddCommand(destroyCmd)
 	RootCmd.AddCommand(listCmd)
+	RootCmd.AddCommand(getPasswordCmd)
 	deployCmd.AddCommand(localCmd)
 	deployCmd.AddCommand(cloudCmd)
 }

@@ -13,9 +13,6 @@ server {
 
   # api
   location /api {
-    auth_basic           "Open Targets";
-    auth_basic_user_file /etc/nginx/.htpasswd;
-
     proxy_pass http://localhost:8081;
     # root in the api is /, not /api, so we need to rewrite the URI
     if ($uri = /api) {

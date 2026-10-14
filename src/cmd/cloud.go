@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/opentargets/platform-deployment-standalone/internal/config"
 	"github.com/opentargets/platform-deployment-standalone/internal/housekeeping"
@@ -141,4 +142,97 @@ func ListCloud(backend string) {
 	}
 
 	fmt.Printf("%s\n", statuses.String())
+}
+
+// RunGetPassword lists deployments returning a 401 response, prompts the user
+// to pick one, and prints the value of the matching <subdomain>-htpasswd GCP
+// secret to stdout.
+func RunGetPassword(backend string) {
+	em := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#777777")).Render(" — ")
+
+	type unauthorizedDeployment struct {
+		name string
+		url  string
+	}
+	var unauthorized []unauthorizedDeployment
+
+	collect := func() {
+		files, err := tools.ListFilesInGCSPrefix(backend)
+		if err != nil {
+			log.Fatalf("error listing files in ops uri: %v\n", err)
+		}
+
+		for _, f := range files {
+			if strings.Contains(f, ".") {
+				continue
+			}
+
+			configFilename := fmt.Sprintf("%s/%s", backend, f)
+			url, status := housekeeping.CheckInstanceT(configFilename)
+			if status == "401" {
+				unauthorized = append(unauthorized, unauthorizedDeployment{
+					name: f,
+					url:  url,
+				})
+			}
+		}
+	}
+	if err := tools.RunWithSpinner("looking for deployments with authentication", collect); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+
+	if len(unauthorized) == 0 {
+		log.Println("No deployments with authentication.")
+		return
+	}
+
+	options := make([]huh.Option[string], 0, len(unauthorized))
+	for _, d := range unauthorized {
+		label := fmt.Sprintf("%s%s%s", d.name, em, d.url)
+		options = append(options, huh.NewOption(label, d.name))
+	}
+
+	var picked string
+	pf := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Select a deployment").
+				Description("These deployments are using authentication. Pick one to retrieve it's password.").
+				Options(options...).
+				Value(&picked),
+		),
+	)
+	if err := pf.Run(); err != nil {
+		log.Fatal(err.Error())
+	}
+
+	if picked == "" {
+		log.Fatal("no deployment selected")
+	}
+
+	secretName := fmt.Sprintf("%s-htpasswd", picked)
+
+	var projectID string
+	getProjectId := func() {
+		projectID = housekeeping.GetGCPProjectID()
+	}
+
+	if err := tools.RunWithSpinner("getting the project id", getProjectId); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+
+	var secret string
+	fetch := func() {
+		var err error
+		secret, err = housekeeping.AccessGCPSecret(projectID, secretName)
+		if err != nil {
+			log.Fatalf("error accessing secret %q: %v\n", secretName, err)
+		}
+	}
+
+	if err := tools.RunWithSpinner(fmt.Sprintf("accessing secret %s", secretName), fetch); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+
+	fmt.Printf("The password for the user ot_admin is: %s\n", secret)
 }

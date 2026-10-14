@@ -17,10 +17,15 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/compute/metadata"
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/joho/godotenv"
 	"github.com/opentargets/platform-deployment-standalone/internal/config"
 	"github.com/opentargets/platform-deployment-standalone/internal/tools"
 )
+
+const gcpContextTimeout = 10 * time.Second
 
 // EnsureDir checks if the deployment directory exists and creates it if not.
 func EnsureDir(path string) {
@@ -129,6 +134,72 @@ func UploadConfig(c *config.CloudDeploymentConfig) error {
 }
 
 // CheckInstance checks the state of an Open Targets instance.
+func CheckInstanceT(configFilename string) (string, string) {
+	config, err := tools.ReadFileFromGCS(configFilename)
+	if err != nil {
+		return "unknown url", fmt.Sprintf("error: unable to read config file %s: %v", configFilename, err)
+
+	}
+	env, err := godotenv.Unmarshal(config)
+	if err != nil {
+		return "unknown url", fmt.Sprintf("error: unable to parse config file %s: %v\n", configFilename, err)
+	}
+
+	rootURL := fmt.Sprintf("https://%s.%s", env["TF_VAR_OT_SUBDOMAIN_NAME"], env["TF_VAR_OT_DOMAIN_NAME"])
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	r, err := http.NewRequestWithContext(ctx, "GET", rootURL, http.NoBody)
+	if err != nil {
+		return rootURL, fmt.Sprintf("error: unable to create request to %s: %v\n", rootURL, err)
+	}
+
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Accept", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(r)
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return rootURL, "error: timeout"
+		}
+		var dnsErr *net.DNSError
+		if errors.As(err, &dnsErr) {
+			if dnsErr.IsNotFound {
+				return rootURL, "error: unknown host"
+			}
+			return rootURL, "error: dns error"
+		}
+		var opErr *net.OpError
+		if errors.As(err, &opErr) {
+			if opErr.Timeout() {
+				return rootURL, "error: network timeout"
+			}
+			return rootURL, "error: network error"
+		}
+		errStr := err.Error()
+		if strings.Contains(errStr, "connection refused") {
+			return rootURL, "error: connection refused"
+		}
+
+		return rootURL, "error: network error"
+	}
+	if resp.StatusCode != 200 {
+		return rootURL, strconv.Itoa(resp.StatusCode)
+	}
+	defer resp.Body.Close()
+
+	var b = make([]byte, 1024)
+	resp.Body.Read(b)
+
+	if strings.Contains(string(b), "Open Targets") {
+		return rootURL, "live"
+	}
+
+	return rootURL, "error: unknown response"
+}
+
+// CheckInstance checks the state of an Open Targets instance.
 func CheckInstance(configFilename string) (string, string) {
 	config, err := tools.ReadFileFromGCS(configFilename)
 	if err != nil {
@@ -194,4 +265,68 @@ func CheckInstance(configFilename string) (string, string) {
 	}
 
 	return rootURL, "error: unknown response"
+}
+
+// AccessGCPSecret retrieves the latest version payload of a GCP Secret Manager
+// secret. The returned value is the raw secret payload as a string.
+func AccessGCPSecret(projectID, secretName string) (string, error) {
+	if projectID == "" {
+		return "", errors.New("unable to determine GCP project: set GOOGLE_CLOUD_PROJECT, configure one with `gcloud config set project <id>`, or run on a GCP resource")
+	}
+	if secretName == "" {
+		return "", errors.New("secret name is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), gcpContextTimeout)
+	defer cancel()
+
+	client, err := secretmanager.NewRESTClient(ctx)
+	if err != nil {
+		return "", fmt.Errorf("unable to access google cloud secret manager: %w", err)
+	}
+	defer client.Close()
+
+	req := &secretmanagerpb.AccessSecretVersionRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, secretName),
+	}
+
+	resp, err := client.AccessSecretVersion(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("unable to access secret %q: %w", secretName, err)
+	}
+
+	return string(resp.GetPayload().GetData()), nil
+}
+
+// GetGCPProjectID returns the current GCP project ID. It tries, in order:
+//  1. the GOOGLE_CLOUD_PROJECT environment variable;
+//  2. the compute metadata server (so it works on GCE/GKE/Cloud Run);
+//  3. the project configured in the gcloud CLI (`gcloud config get-value
+//     project`), for developer laptops authenticated with `gcloud auth login`.
+//
+// Returns an empty string when no source yields a value.
+func GetGCPProjectID() string {
+	if pid := os.Getenv("GOOGLE_CLOUD_PROJECT"); pid != "" {
+		return pid
+	}
+
+	metadataClient := metadata.NewClient(nil)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	if pid, err := metadataClient.ProjectIDWithContext(ctx); err == nil && pid != "" {
+		return pid
+	}
+
+	if path, err := exec.LookPath("gcloud"); err == nil {
+		out, err := exec.Command(path, "config", "get-value", "project").Output()
+		if err == nil {
+			if pid := strings.TrimSpace(string(out)); pid != "" && pid != "(unset)" {
+				return pid
+			}
+		}
+	}
+
+	return ""
 }

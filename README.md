@@ -35,9 +35,10 @@ Usage:
   ./platform [command]
 
 Main commands
-  deploy      Create a deployment
-  destroy     Destroy a deployment
-  list        List cloud deployments
+  deploy       Create a deployment
+  destroy      Destroy a deployment
+  get-password Retrieve the password for a deployment using authentication
+  list         List cloud deployments
 
 Additional Commands:
   completion  Generate the autocompletion script for the specified shell
