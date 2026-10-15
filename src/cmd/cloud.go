@@ -110,7 +110,7 @@ func ListCloud(backend string) {
 
 			var url, status string
 			checkInstance := func() {
-				url, status = housekeeping.CheckInstance(configFilename)
+				url, status = housekeeping.CheckInstance(configFilename, housekeeping.CheckInstanceLiveSpec)
 			}
 
 			tools.RunWithSpinner(fmt.Sprintf("checking instance %s", f), checkInstance)
@@ -168,7 +168,7 @@ func RunGetPassword(backend string) {
 			}
 
 			configFilename := fmt.Sprintf("%s/%s", backend, f)
-			url, status := housekeeping.CheckInstanceT(configFilename)
+			url, status := housekeeping.CheckInstance(configFilename, housekeeping.CheckInstanceAuthSpec)
 			if status == "401" {
 				unauthorized = append(unauthorized, unauthorizedDeployment{
 					name: f,

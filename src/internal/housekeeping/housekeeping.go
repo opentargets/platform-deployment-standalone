@@ -133,78 +133,53 @@ func UploadConfig(c *config.CloudDeploymentConfig) error {
 	return nil
 }
 
-// CheckInstance checks the state of an Open Targets instance.
-func CheckInstanceT(configFilename string) (string, string) {
-	config, err := tools.ReadFileFromGCS(configFilename)
-	if err != nil {
-		return "unknown url", fmt.Sprintf("error: unable to read config file %s: %v", configFilename, err)
-
-	}
-	env, err := godotenv.Unmarshal(config)
-	if err != nil {
-		return "unknown url", fmt.Sprintf("error: unable to parse config file %s: %v\n", configFilename, err)
-	}
-
-	rootURL := fmt.Sprintf("https://%s.%s", env["TF_VAR_OT_SUBDOMAIN_NAME"], env["TF_VAR_OT_DOMAIN_NAME"])
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-
-	r, err := http.NewRequestWithContext(ctx, "GET", rootURL, http.NoBody)
-	if err != nil {
-		return rootURL, fmt.Sprintf("error: unable to create request to %s: %v\n", rootURL, err)
-	}
-
-	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("Accept", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(r)
-	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return rootURL, "error: timeout"
-		}
-		var dnsErr *net.DNSError
-		if errors.As(err, &dnsErr) {
-			if dnsErr.IsNotFound {
-				return rootURL, "error: unknown host"
-			}
-			return rootURL, "error: dns error"
-		}
-		var opErr *net.OpError
-		if errors.As(err, &opErr) {
-			if opErr.Timeout() {
-				return rootURL, "error: network timeout"
-			}
-			return rootURL, "error: network error"
-		}
-		errStr := err.Error()
-		if strings.Contains(errStr, "connection refused") {
-			return rootURL, "error: connection refused"
-		}
-
-		return rootURL, "error: network error"
-	}
-	if resp.StatusCode != 200 {
-		return rootURL, strconv.Itoa(resp.StatusCode)
-	}
-	defer resp.Body.Close()
-
-	var b = make([]byte, 1024)
-	resp.Body.Read(b)
-
-	if strings.Contains(string(b), "Open Targets") {
-		return rootURL, "live"
-	}
-
-	return rootURL, "error: unknown response"
+// checkSpec describes how to probe an Open Targets instance: the HTTP
+// request shape and the rule for turning the response into a status string.
+type checkSpec struct {
+	method  string
+	path    string
+	body    string
+	headers map[string]string
+	// validate returns the status string to display and whether the
+	// instance counts as "live".
+	validate func(status int, body []byte) (string, bool)
 }
 
-// CheckInstance checks the state of an Open Targets instance.
-func CheckInstance(configFilename string) (string, string) {
+var (
+	CheckInstanceLiveSpec = checkSpec{
+		method:  http.MethodPost,
+		path:    "/api/v4/graphql",
+		body:    `{"query": "{ meta { name } }"}`,
+		headers: map[string]string{"Content-Type": "application/json", "Accept": "application/json"},
+		validate: func(status int, body []byte) (string, bool) {
+			if status != http.StatusOK {
+				return strconv.Itoa(status), false
+			}
+			if strings.Contains(string(body), "Open Targets") {
+				return "live", true
+			}
+			return "error: unknown response", false
+		},
+	}
+
+	CheckInstanceAuthSpec = checkSpec{
+		method: http.MethodGet,
+		path:   "/",
+		validate: func(status int, body []byte) (string, bool) {
+			if status >= 200 && status < 400 {
+				return "live", true
+			}
+			return strconv.Itoa(status), false
+		},
+	}
+)
+
+// CheckInstance checks the state of an Open Targets instance using the
+// request shape and validation rules described by spec.
+func CheckInstance(configFilename string, spec checkSpec) (string, string) {
 	config, err := tools.ReadFileFromGCS(configFilename)
 	if err != nil {
 		return "unknown url", fmt.Sprintf("error: unable to read config file %s: %v", configFilename, err)
-
 	}
 	env, err := godotenv.Unmarshal(config)
 	if err != nil {
@@ -212,19 +187,23 @@ func CheckInstance(configFilename string) (string, string) {
 	}
 
 	rootURL := fmt.Sprintf("https://%s.%s", env["TF_VAR_OT_SUBDOMAIN_NAME"], env["TF_VAR_OT_DOMAIN_NAME"])
-	url := fmt.Sprintf("%s/api/v4/graphql", rootURL)
+	url := rootURL + spec.path
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	payload := `{"query": "{ meta { name } }"}`
-	r, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBufferString(payload))
+	var body io.Reader = http.NoBody
+	if spec.body != "" {
+		body = bytes.NewBufferString(spec.body)
+	}
+	r, err := http.NewRequestWithContext(ctx, spec.method, url, body)
 	if err != nil {
 		return rootURL, fmt.Sprintf("error: unable to create request to %s: %v\n", url, err)
 	}
+	for k, v := range spec.headers {
+		r.Header.Set(k, v)
+	}
 
-	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("Accept", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(r)
 	if err != nil {
@@ -252,19 +231,13 @@ func CheckInstance(configFilename string) (string, string) {
 
 		return rootURL, "error: network error"
 	}
-	if resp.StatusCode != 200 {
-		return rootURL, strconv.Itoa(resp.StatusCode)
-	}
 	defer resp.Body.Close()
 
 	var b = make([]byte, 1024)
 	resp.Body.Read(b)
 
-	if strings.Contains(string(b), "Open Targets") {
-		return rootURL, "live"
-	}
-
-	return rootURL, "error: unknown response"
+	status, _ := spec.validate(resp.StatusCode, b)
+	return rootURL, status
 }
 
 // AccessGCPSecret retrieves the latest version payload of a GCP Secret Manager
