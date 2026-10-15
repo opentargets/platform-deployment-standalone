@@ -2,7 +2,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 6.47.0"
+      version = ">= 8.6.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.6"
     }
   }
   backend "gcs" {}
@@ -13,6 +17,7 @@ variable "OT_SNAPSHOT_OS" { type = string }
 variable "OT_DOMAIN_NAME" { type = string }
 variable "OT_SUBDOMAIN_NAME" { type = string }
 variable "OT_GCP_PROJECT" { type = string }
+variable "OT_GCP_REGION" { type = string }
 variable "OT_GCP_ZONE" { type = string }
 variable "OT_GCP_CLOUD_DNS_ZONE" { type = string }
 variable "OT_GCP_NETWORK" { type = string }
@@ -55,6 +60,51 @@ resource "google_compute_disk" "opensearch_data_volume" {
   zone     = var.OT_GCP_ZONE
   type     = "pd-balanced"
   snapshot = "projects/${var.OT_GCP_PROJECT}/global/snapshots/${var.OT_SNAPSHOT_OS}"
+}
+
+// BASIC AUTH SECRET
+
+resource "google_secret_manager_secret" "webapp_basic_auth" {
+  project   = var.OT_GCP_PROJECT
+  secret_id = "${var.OT_SUBDOMAIN_NAME}-htpasswd"
+
+  replication {
+    auto {}
+  }
+
+  labels = {
+    "team"        = "opentargets"
+    "product"     = "platform"
+    "tool"        = "standalone"
+    "environment" = "development"
+    "created_by"  = "terraform"
+    "author"      = local.user
+  }
+}
+
+resource "google_secret_manager_secret_iam_member" "webapp_basic_auth" {
+  project   = var.OT_GCP_PROJECT
+  secret_id = google_secret_manager_secret.webapp_basic_auth.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.OT_GCP_SA}"
+
+  depends_on = [google_secret_manager_secret.webapp_basic_auth]
+}
+
+resource "random_password" "webapp_pass" {
+  length  = 10
+  special = false
+
+  lifecycle {
+    ignore_changes = [result]
+  }
+}
+
+resource "google_secret_manager_secret_version" "webapp_pass" {
+  secret = google_secret_manager_secret.webapp_basic_auth.id
+
+  secret_data_wo_version = 1
+  secret_data_wo         = random_password.webapp_pass.result
 }
 
 // COMPUTE INSTANCES
@@ -127,7 +177,7 @@ resource "google_compute_instance" "dev_vm" {
     ]
   }
 
-  depends_on = [google_compute_disk.clickhouse_data_volume, google_compute_disk.opensearch_data_volume]
+  depends_on = [google_compute_disk.clickhouse_data_volume, google_compute_disk.opensearch_data_volume, google_secret_manager_secret_version.webapp_pass]
 }
 
 // DNS RECORD SETS

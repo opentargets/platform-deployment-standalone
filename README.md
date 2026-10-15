@@ -15,11 +15,11 @@ machine.
 
 Regarding software, you will need:
 
-* [Go](https://go.dev/doc/install), to compile the configurator
-* [Docker](https://docs.docker.com/engine/install/), for local deployments
-* [GCloud CLI](https://cloud.google.com/sdk/docs/install), and
-* [Terraform](https://developer.hashicorp.com/terraform/install) for cloud deployments (this will be installed automatically by the tool)
-* [pigz](https://zlib.net/pigz/) which you can install with your package manager of choice
+- [Go](https://go.dev/doc/install), to compile the configurator
+- [Docker](https://docs.docker.com/engine/install/), for local deployments
+- [GCloud CLI](https://cloud.google.com/sdk/docs/install), and
+- [Terraform](https://developer.hashicorp.com/terraform/install) for cloud deployments (this will be installed automatically by the tool)
+- [pigz](https://zlib.net/pigz/) which you can install with your package manager of choice
 
 ## Build
 
@@ -35,9 +35,10 @@ Usage:
   ./platform [command]
 
 Main commands
-  deploy      Create a deployment
-  destroy     Destroy a deployment
-  list        List cloud deployments
+  deploy       Create a deployment
+  destroy      Destroy a deployment
+  get-password Retrieve the password for a deployment using authentication
+  list         List cloud deployments
 
 Additional Commands:
   completion  Generate the autocompletion script for the specified shell
@@ -70,23 +71,23 @@ The cloud deployments are intended to be disposable, and they are self-deleting
 after a configurable timeframe. For this, the application assumes you have a
 Service Account with the following roles:
 
-* `roles/compute.instanceAdmin.v1` to delete a machine to host the platform
-* `roles/compute.storageAdmin` to delete the disks holding the data
-* `roles/compute.securityAdmin` to delete firewall rules that allow access to
-the API and AI API
-* `roles/compute.viewer` to watch operations related to disk destruction on
-cleanup
-* `roles/compute.networkAdmin` to allow modifying the network to delete firewall
-rules
-* `roles/dns.admin` to add and remove record sets for the deployment hostname and
-from letsencrypt's certificate validation method from Cloud DNS.
-* `secretmanager.secretAccessor` to access the secret holding your token for the
-AI API
+- `roles/compute.instanceAdmin.v1` to delete a machine to host the platform
+- `roles/compute.storageAdmin` to delete the disks holding the data
+- `roles/compute.securityAdmin` to delete firewall rules that allow access to
+  the API and AI API
+- `roles/compute.viewer` to watch operations related to disk destruction on
+  cleanup
+- `roles/compute.networkAdmin` to allow modifying the network to delete firewall
+  rules
+- `roles/dns.admin` to add and remove record sets for the deployment hostname and
+  from letsencrypt's certificate validation method from Cloud DNS.
+- `secretmanager.secretAccessor` to access the secret holding your token for the
+  AI API
 
 You can add those roles to an account in a restricted fashion by using these
 commands:
 
-``` bash
+```bash
 service_account_name="example"
 project="example-project"
 zone="europe-west1-d"
@@ -138,8 +139,8 @@ and `prefix` values inside to ones you own.
 
 A terraform file to set this all up will be provided!
 
-
 # Copyright
+
 Copyright 2014-2025 EMBL - European Bioinformatics Institute, Genentech, GSK,
 MSD, Pfizer, Sanofi and Wellcome Sanger Institute
 
@@ -150,7 +151,7 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
 License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software distributed
 under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR

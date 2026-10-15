@@ -17,10 +17,15 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/compute/metadata"
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/joho/godotenv"
 	"github.com/opentargets/platform-deployment-standalone/internal/config"
 	"github.com/opentargets/platform-deployment-standalone/internal/tools"
 )
+
+const gcpContextTimeout = 10 * time.Second
 
 // EnsureDir checks if the deployment directory exists and creates it if not.
 func EnsureDir(path string) {
@@ -128,12 +133,53 @@ func UploadConfig(c *config.CloudDeploymentConfig) error {
 	return nil
 }
 
-// CheckInstance checks the state of an Open Targets instance.
-func CheckInstance(configFilename string) (string, string) {
+// checkSpec describes how to probe an Open Targets instance: the HTTP
+// request shape and the rule for turning the response into a status string.
+type checkSpec struct {
+	method  string
+	path    string
+	body    string
+	headers map[string]string
+	// validate returns the status string to display and whether the
+	// instance counts as "live".
+	validate func(status int, body []byte) (string, bool)
+}
+
+var (
+	CheckInstanceLiveSpec = checkSpec{
+		method:  http.MethodPost,
+		path:    "/api/v4/graphql",
+		body:    `{"query": "{ meta { name } }"}`,
+		headers: map[string]string{"Content-Type": "application/json", "Accept": "application/json"},
+		validate: func(status int, body []byte) (string, bool) {
+			if status != http.StatusOK {
+				return strconv.Itoa(status), false
+			}
+			if strings.Contains(string(body), "Open Targets") {
+				return "live", true
+			}
+			return "error: unknown response", false
+		},
+	}
+
+	CheckInstanceAuthSpec = checkSpec{
+		method: http.MethodGet,
+		path:   "/",
+		validate: func(status int, body []byte) (string, bool) {
+			if status >= 200 && status < 400 {
+				return "live", true
+			}
+			return strconv.Itoa(status), false
+		},
+	}
+)
+
+// CheckInstance checks the state of an Open Targets instance using the
+// request shape and validation rules described by spec.
+func CheckInstance(configFilename string, spec checkSpec) (string, string) {
 	config, err := tools.ReadFileFromGCS(configFilename)
 	if err != nil {
 		return "unknown url", fmt.Sprintf("error: unable to read config file %s: %v", configFilename, err)
-
 	}
 	env, err := godotenv.Unmarshal(config)
 	if err != nil {
@@ -141,19 +187,23 @@ func CheckInstance(configFilename string) (string, string) {
 	}
 
 	rootURL := fmt.Sprintf("https://%s.%s", env["TF_VAR_OT_SUBDOMAIN_NAME"], env["TF_VAR_OT_DOMAIN_NAME"])
-	url := fmt.Sprintf("%s/api/v4/graphql", rootURL)
+	url := rootURL + spec.path
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	payload := `{"query": "{ meta { name } }"}`
-	r, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBufferString(payload))
+	var body io.Reader = http.NoBody
+	if spec.body != "" {
+		body = bytes.NewBufferString(spec.body)
+	}
+	r, err := http.NewRequestWithContext(ctx, spec.method, url, body)
 	if err != nil {
 		return rootURL, fmt.Sprintf("error: unable to create request to %s: %v\n", url, err)
 	}
+	for k, v := range spec.headers {
+		r.Header.Set(k, v)
+	}
 
-	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("Accept", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(r)
 	if err != nil {
@@ -181,17 +231,75 @@ func CheckInstance(configFilename string) (string, string) {
 
 		return rootURL, "error: network error"
 	}
-	if resp.StatusCode != 200 {
-		return rootURL, strconv.Itoa(resp.StatusCode)
-	}
 	defer resp.Body.Close()
 
 	var b = make([]byte, 1024)
 	resp.Body.Read(b)
 
-	if strings.Contains(string(b), "Open Targets") {
-		return rootURL, "live"
+	status, _ := spec.validate(resp.StatusCode, b)
+	return rootURL, status
+}
+
+// AccessGCPSecret retrieves the latest version payload of a GCP Secret Manager
+// secret. The returned value is the raw secret payload as a string.
+func AccessGCPSecret(projectID, secretName string) (string, error) {
+	if projectID == "" {
+		return "", errors.New("unable to determine GCP project: set GOOGLE_CLOUD_PROJECT, configure one with `gcloud config set project <id>`, or run on a GCP resource")
+	}
+	if secretName == "" {
+		return "", errors.New("secret name is not set")
 	}
 
-	return rootURL, "error: unknown response"
+	ctx, cancel := context.WithTimeout(context.Background(), gcpContextTimeout)
+	defer cancel()
+
+	client, err := secretmanager.NewRESTClient(ctx)
+	if err != nil {
+		return "", fmt.Errorf("unable to access google cloud secret manager: %w", err)
+	}
+	defer client.Close()
+
+	req := &secretmanagerpb.AccessSecretVersionRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, secretName),
+	}
+
+	resp, err := client.AccessSecretVersion(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("unable to access secret %q: %w", secretName, err)
+	}
+
+	return string(resp.GetPayload().GetData()), nil
+}
+
+// GetGCPProjectID returns the current GCP project ID. It tries, in order:
+//  1. the GOOGLE_CLOUD_PROJECT environment variable;
+//  2. the compute metadata server (so it works on GCE/GKE/Cloud Run);
+//  3. the project configured in the gcloud CLI (`gcloud config get-value
+//     project`), for developer laptops authenticated with `gcloud auth login`.
+//
+// Returns an empty string when no source yields a value.
+func GetGCPProjectID() string {
+	if pid := os.Getenv("GOOGLE_CLOUD_PROJECT"); pid != "" {
+		return pid
+	}
+
+	metadataClient := metadata.NewClient(nil)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	if pid, err := metadataClient.ProjectIDWithContext(ctx); err == nil && pid != "" {
+		return pid
+	}
+
+	if path, err := exec.LookPath("gcloud"); err == nil {
+		out, err := exec.Command(path, "config", "get-value", "project").Output()
+		if err == nil {
+			if pid := strings.TrimSpace(string(out)); pid != "" && pid != "(unset)" {
+				return pid
+			}
+		}
+	}
+
+	return ""
 }

@@ -27,6 +27,9 @@ server {
 
   # ai literature summarization api
   location /literature {
+    auth_basic           "Open Targets";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
     proxy_pass http://localhost:8082;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -34,8 +37,11 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
   }
 
-  # web app
+  # web app (basic-auth protected)
   location / {
+    auth_basic           "Open Targets";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
     proxy_pass http://localhost:8080;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
