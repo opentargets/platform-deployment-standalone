@@ -19,7 +19,7 @@ import (
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"cloud.google.com/go/storage"
-	"github.com/docker/docker/client"
+	"github.com/distribution/reference"
 	"github.com/opentargets/platform-deployment-standalone/internal/tools"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/grpc/codes"
@@ -73,28 +73,21 @@ func ValidateURL(v string) error {
 	return ValidateMaxLength(v, 2048)
 }
 
-// ValidateImageName checks if the provided string is a valid and available docker image.
+// ValidateImageName checks if the provided string is a well-formed docker image name.
+//
+// Availability is not checked here, as images are not guaranteed to publish a
+// `latest` tag. ValidateVersionTag checks the image and tag together instead.
 func ValidateImageName(v string) error {
 	if err := ValidateNotEmpty(v); err != nil {
 		return err
 	}
 
-	client, err := tools.GetDockerClient()
+	named, err := reference.ParseNormalizedNamed(v)
 	if err != nil {
-		return err
+		return fmt.Errorf("'%s' is not a valid image name: %w", v, err)
 	}
-	defer client.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	_, err = client.DistributionInspect(ctx, v, "")
-	if err != nil {
-		vReminder := ""
-		if strings.HasPrefix(v, "v") {
-			vReminder = " (remember our images are not prefixed with 'v'!)"
-		}
-		return fmt.Errorf("'%s' not found or not accessible: %+w %s", v, err, vReminder)
+	if !reference.IsNameOnly(named) {
+		return fmt.Errorf("'%s' must not include a tag or digest", v)
 	}
 	return nil
 }
@@ -111,7 +104,7 @@ func ValidateVersionTag(getImageName func() string) func(v string) error {
 			return errors.New("image name is not set")
 		}
 
-		client, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		client, err := tools.GetDockerClient()
 		if err != nil {
 			return err
 		}
@@ -122,7 +115,11 @@ func ValidateVersionTag(getImageName func() string) func(v string) error {
 
 		_, err = client.DistributionInspect(ctx, imageName+":"+v, "")
 		if err != nil {
-			return fmt.Errorf("'%s' not found or not accessible", v)
+			vReminder := ""
+			if strings.HasPrefix(v, "v") {
+				vReminder = " (remember our images are not prefixed with 'v'!)"
+			}
+			return fmt.Errorf("'%s' not found or not accessible in '%s': %w%s", v, imageName, err, vReminder)
 		}
 		return nil
 	}

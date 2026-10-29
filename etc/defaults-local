@@ -6,8 +6,8 @@ OT_RELEASE="25.12"
 OT_RELEASE_URL="https://ftp.ebi.ac.uk/pub/databases/opentargets/platform"
 
 # Software versions
-OT_API_IMAGE="ghcr.io/opentargets/platform-api"
-OT_API_TAG="25.4.4"
+OT_API_IMAGE="ghcr.io/opentargets/platform-api-nextgen"
+OT_API_TAG="0.0.1-dev.0"
 OT_API_AI_IMAGE="ghcr.io/opentargets/ot-ai-api"
 OT_API_AI_TAG="0.0.13"
 OT_WEBAPP_IMAGE="ghcr.io/opentargets/ot-ui-apps"

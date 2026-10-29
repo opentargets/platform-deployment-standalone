@@ -149,7 +149,7 @@ func NewCloudDeploymentConfig(configPath string) (*CloudDeploymentConfig, error)
 		},
 		APITag: Setting{
 			Title:       "API docker image tag",
-			Description: "Check available tags at https://github.com/opentargets/platform-api/pkgs/container/platform-api",
+			Description: "Check available tags at https://github.com/opentargets/platform-api-nextgen/pkgs/container/platform-api-nextgen",
 			Env:         "OT_API_TAG",
 			Value:       env["OT_API_TAG"],
 		},

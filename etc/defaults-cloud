@@ -19,8 +19,8 @@ TF_VAR_OT_SNAPSHOT_CH="platform-2512-ch"
 TF_VAR_OT_SNAPSHOT_OS="platform-2512-os"
 
 # Software versions
-OT_API_IMAGE="ghcr.io/opentargets/platform-api"
-OT_API_TAG="25.4.4"
+OT_API_IMAGE="ghcr.io/opentargets/platform-api-nextgen"
+OT_API_TAG="0.0.1-dev.0"
 OT_API_AI_IMAGE="ghcr.io/opentargets/ot-ai-api"
 OT_API_AI_TAG="0.0.13"
 OT_API_AI_TOKEN=""
